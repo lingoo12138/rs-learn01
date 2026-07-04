@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 
 /// 练习1：将 String 的所有权从 s1 移动到 s2，返回 s2
+/// 练习2 与本练习代码相同，但侧重于理解为什么移动后 s1 不能使用
 pub fn exercise1() -> String {
     let s1 = String::from("hello");
     let s2 = s1;
@@ -21,7 +22,6 @@ pub fn exercise2() -> String {
 pub fn exercise3() -> String {
     let s1 = String::from("hello");
     let s2 = s1.clone();
-    let _ = s1;
     s2
 }
 
@@ -98,7 +98,8 @@ mod tests {
     #[test]
     fn test_classify() {
         let result = classify_copy_or_move();
-        assert!(result.contains("Copy"));
-        assert!(result.contains("Move"));
+        assert!(result.contains("i32: Copy"));
+        assert!(result.contains("String: Move"));
+        assert!(result.contains("bool: Copy"));
     }
 }
