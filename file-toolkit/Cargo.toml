@@ -3,4 +3,5 @@ resolver = "2"
 members = [
     "v1-basic",
     "v2-indexed",
+    "v3-parallel",
 ]
