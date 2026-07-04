@@ -1,0 +1,14 @@
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\deps\libserde-cfd8c3a855193173.rmeta: E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src/lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\integer128.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\mod.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\de.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\ser.rs E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\build\serde-e776f346154732a4\out/private.rs
+
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\deps\libserde-cfd8c3a855193173.rlib: E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src/lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\integer128.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\mod.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\de.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\ser.rs E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\build\serde-e776f346154732a4\out/private.rs
+
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\deps\serde-cfd8c3a855193173.d: E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src/lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\integer128.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\mod.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\de.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\ser.rs E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\build\serde-e776f346154732a4\out/private.rs
+
+E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src/lib.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\integer128.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\mod.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\de.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-8754fae0eb2f08f1\serde-1.0.228\src\private\ser.rs:
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\build\serde-e776f346154732a4\out/private.rs:
+
+# env-dep:OUT_DIR=E:\\lishihua_workspace\\rust_coding\\rs-learn-project\\rs-learn01\\file-toolkit\\target\\debug\\build\\serde-e776f346154732a4\\out

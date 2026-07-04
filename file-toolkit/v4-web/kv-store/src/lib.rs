@@ -72,9 +72,10 @@ impl FileStorage {
     }
 
     /// 将当前内存状态持久化到 JSON 文件
-    fn persist(&self) {
-        let json = serde_json::to_string_pretty(&self.memory).expect("序列化存储失败");
-        let _ = fs::write(&self.path, json);
+    fn persist(&self) -> Result<(), String> {
+        let json = serde_json::to_string_pretty(&self.memory).map_err(|e| format!("序列化存储失败: {}", e))?;
+        fs::write(&self.path, json).map_err(|e| format!("写入存储文件失败: {}", e))?;
+        Ok(())
     }
 }
 
@@ -85,13 +86,17 @@ impl Storage for FileStorage {
 
     fn set(&mut self, key: String, value: String) {
         self.memory.set(key, value);
-        self.persist();
+        if let Err(e) = self.persist() {
+            eprintln!("持久化存储失败: {}", e);
+        }
     }
 
     fn delete(&mut self, key: &str) -> bool {
         let removed = self.memory.delete(key);
         if removed {
-            self.persist();
+            if let Err(e) = self.persist() {
+                eprintln!("持久化存储失败: {}", e);
+            }
         }
         removed
     }

@@ -32,6 +32,6 @@ fn main() {
     println!();
     println!("操作方式：");
     println!("  1. 打开对应章节的 HTML 教学文档学习概念");
-    println!("  2. 编辑对应章节的 mod.rs 填写 todo!() 代码");
+    println!("  2. 阅读对应章节的 mod.rs 理解代码含义");
     println!("  3. 运行 cargo test 验证答案");
 }

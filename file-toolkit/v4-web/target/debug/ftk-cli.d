@@ -1,0 +1,1 @@
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v4-web\target\debug\ftk-cli.exe: E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v4-web\cli\src\main.rs

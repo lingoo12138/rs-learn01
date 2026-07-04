@@ -146,60 +146,43 @@ fn cmd_search(args: &[String]) {
         return;
     }
 
-    // 并行搜索未缓存的文件
-    let results: Vec<(&String, Vec<(usize, String)>)> = files
+    // 找出未缓存的文件，用 rayon 并行搜索
+    let uncached: Vec<&String> = files
+        .iter()
+        .filter(|f| storage.get(&format!("{}:{}", query, f)).is_none())
+        .collect();
+
+    let new_results: Vec<Vec<(usize, String)>> = uncached
         .par_iter()
         .map(|file| {
-            let cached_key = format!("{}:{}", query, file);
-            // 检查该文件是否在缓存中
-            let mut local_storage = MemoryStorage::default();
-            if local_storage.load(CACHE_FILE).is_ok() {
-                if let Some(cached) = local_storage.get(&cached_key) {
-                    // 从缓存行重建结果（模拟解析）
-                    let lines: Vec<&str> = cached.lines().collect();
-                    let parsed: Vec<(usize, String)> = lines
-                        .iter()
-                        .filter_map(|line| {
-                            let parts: Vec<&str> = line.splitn(2, ": ").collect();
-                            if parts.len() == 2 {
-                                let num: usize = parts[0].parse().ok()?;
-                                Some((num, parts[1].to_string()))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-                    return (file, parsed);
-                }
-            }
-
-            let results = search_in_file(query, file);
-
-            // 缓存结果
-            if !results.is_empty() {
-                let cached_str = results
-                    .iter()
-                    .map(|(line, text)| format!("{}: {}", line, text))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                let mut s = MemoryStorage::default();
-                s.set(cached_key, cached_str);
-                let _ = s.save(CACHE_FILE);
-            }
-
-            (file, results)
+            search_in_file(query, file)
         })
         .collect();
 
-    // 输出结果
+    // 将新结果写入缓存（单次持久化，无并发竞态）
+    for (file, results) in uncached.iter().zip(new_results.iter()) {
+        if !results.is_empty() {
+            let cached_str = results
+                .iter()
+                .map(|(line, text)| format!("{}: {}", line, text))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let key = format!("{}:{}", query, file);
+            storage.set(key, cached_str);
+        }
+    }
+    if let Err(e) = storage.save(CACHE_FILE) {
+        eprintln!("保存缓存失败: {}", e);
+    }
+
+    // 输出所有结果（缓存 + 新搜索）
     let mut has_any = false;
-    for (file, matches) in &results {
-        if !matches.is_empty() {
+    for file in files {
+        let key = format!("{}:{}", query, file);
+        if let Some(cached) = storage.get(&key) {
             has_any = true;
             println!("{}:", file);
-            for (line, text) in matches {
-                println!("{}: {}", line, text);
-            }
+            println!("{}", cached);
             println!();
         }
     }

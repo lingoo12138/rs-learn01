@@ -1,0 +1,1 @@
+Vec<(&std::string::String, Vec<(usize, std::string::String)>)>: FromParallelIterator<(&&std::string::String, Vec<(usize, std::string::String)>)>

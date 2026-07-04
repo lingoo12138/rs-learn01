@@ -1,0 +1,1 @@
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\target\debug\ftk-v2-indexed.exe: E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v2-indexed\src\main.rs

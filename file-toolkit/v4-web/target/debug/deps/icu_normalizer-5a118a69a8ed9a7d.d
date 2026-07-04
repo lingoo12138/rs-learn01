@@ -1,0 +1,10 @@
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v4-web\target\debug\deps\icu_normalizer-5a118a69a8ed9a7d.d: E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\properties.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\provider.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\uts46.rs
+
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v4-web\target\debug\deps\libicu_normalizer-5a118a69a8ed9a7d.rlib: E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\properties.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\provider.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\uts46.rs
+
+E:\lishihua_workspace\rust_coding\rs-learn-project\rs-learn01\file-toolkit\v4-web\target\debug\deps\libicu_normalizer-5a118a69a8ed9a7d.rmeta: E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\lib.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\properties.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\provider.rs E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\uts46.rs
+
+E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\lib.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\properties.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\provider.rs:
+E:\rust\cargo\registry\src\mirrors.aliyun.com-0671735e7cc7f5e7\icu_normalizer-2.2.0\src\uts46.rs:
