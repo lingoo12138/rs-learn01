@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第08章：错误处理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第08章：错误处理</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>理解 <code>panic!</code> 宏的使用场景与行为</li>
+  <li>使用 <code>Result&lt;T, E&gt;</code> 处理可恢复错误</li>
+  <li>使用 <code>?</code> 运算符传播错误</li>
+  <li>理解 <code>unwrap</code> 和 <code>expect</code> 的用途与风险</li>
+  <li>使用 <code>map</code> 和 <code>and_then</code> 组合 Result/Option</li>
+  <li>自定义错误类型并实现 <code>Error</code> trait</li>
+  <li>综合处理多步操作中的错误</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>来自 Java 或 Python 的程序员习惯使用 <code>try/catch</code> 异常机制。Rust 没有异常！它使用 <code>Result&lt;T, E&gt;</code> 类型来编码"可能失败"的操作——这是类型系统的一部分，意味着调用者<strong>必须</strong>处理错误，不可能"忘记"捕获异常。
+</div>
+
+<h2>1. 不可恢复错误：<code>panic!</code></h2>
+<p>当程序遇到无法处理的情况时，可以调用 <code>panic!</code> 宏。这会导致程序打印错误信息、清理栈（或直接终止），然后退出。</p>
+
+<div class="code-block"><span class="keyword">fn</span> will_panic(n: i32) -> i32 {
+    <span class="keyword">if</span> n &lt; <span class="string">0</span> {
+        <span class="keyword">panic!</span>(<span class="string">"negative number!"</span>)
+    }
+    n
+}
+
+<span class="comment">// 调用时传入负数会导致程序崩溃</span>
+<span class="comment">// will_panic(-5); // 运行时会 panic</span></div>
+
+<p>什么时候使用 panic：</p>
+<ul>
+  <li>示例代码或原型开发中</li>
+  <li>测试中——测试失败时可以 panic</li>
+  <li>当程序处于"不可能"的错误状态时（如数组越界）</li>
+</ul>
+
+<div class="note">
+  <strong>注意：</strong>在库代码中应尽量避免 panic！库的调用者可能不希望程序因为库的内部错误而崩溃。优先返回 <code>Result</code>，让调用者决定如何处理错误。
+</div>
+
+<h2>2. 可恢复错误：<code>Result</code></h2>
+<p><code>Result&lt;T, E&gt;</code> 是一个枚举，表示操作可能成功或失败：</p>
+
+<div class="code-block"><span class="keyword">enum</span> Result&lt;T, E&gt; {
+    Ok(T),   <span class="comment">// 成功，包含值 T</span>
+    Err(E),  <span class="comment">// 失败，包含错误 E</span>
+}</div>
+
+<div class="code-block"><span class="keyword">fn</span> safe_divide(a: f64, b: f64) -> Result&lt;f64, String&gt; {
+    <span class="keyword">if</span> b == <span class="string">0.0</span> {
+        Err(<span class="string">"division by zero"</span>.to_string())
+    } <span class="keyword">else</span> {
+        Ok(a / b)
+    }
+}
+
+<span class="keyword">let</span> result = safe_divide(<span class="string">10.0</span>, <span class="string">2.0</span>);
+<span class="keyword">match</span> result {
+    Ok(value) => println!(<span class="string">"Result: {}"</span>, value),
+    Err(msg) => println!(<span class="string">"Error: {}"</span>, msg),
+}</div>
+
+<h2>3. <code>?</code> 运算符：错误的快捷传播</h2>
+<p><code>?</code> 运算符是处理错误的语法糖：如果值是 <code>Ok</code>，则提取其中的值；如果是 <code>Err</code>，则<strong>提前返回</strong>这个错误。</p>
+
+<div class="code-block"><span class="keyword">fn</span> divide_and_double(a: f64, b: f64) -> Result&lt;f64, String&gt; {
+    <span class="comment">// 如果 safe_divide 返回 Err，函数立即返回该错误</span>
+    <span class="keyword">let</span> result = safe_divide(a, b)?;
+    Ok(result * <span class="string">2.0</span>)
+}
+
+<span class="comment">// 上面的代码等价于：</span>
+<span class="keyword">fn</span> divide_and_double_verbose(a: f64, b: f64) -> Result&lt;f64, String&gt; {
+    <span class="keyword">let</span> result = <span class="keyword">match</span> safe_divide(a, b) {
+        Ok(v) => v,
+        Err(e) => <span class="keyword">return</span> Err(e),
+    };
+    Ok(result * <span class="string">2.0</span>)
+}</div>
+
+<div class="tip">
+  <strong>理解 ? 运算符：</strong><code>?</code> 是 Rust 最优雅的特性之一。在 Java 中你可能需要写 <code>try { ... } catch (Exception e) { throw e; }</code> 来传播异常。在 Rust 中，<code>?</code> 做了同样的事情，但仅凭一个字符！注意 <code>?</code> 只能在返回 <code>Result</code> 或 <code>Option</code> 的函数中使用。
+</div>
+
+<h2>4. <code>unwrap</code> 与 <code>expect</code></h2>
+<p><code>unwrap</code> 和 <code>expect</code> 是 Result/Option 上的便捷方法：</p>
+
+<table>
+  <tr><th>方法</th><th>Ok/Some 时</th><th>Err/None 时</th></tr>
+  <tr><td><code>.unwrap()</code></td><td>返回内部值</td><td>panic!</td></tr>
+  <tr><td><code>.expect("msg")</code></td><td>返回内部值</td><td>panic! 并附带自定义消息</td></tr>
+  <tr><td><code>.unwrap_or(default)</code></td><td>返回内部值</td><td>返回默认值</td></tr>
+  <tr><td><code>.unwrap_or_else(fn)</code></td><td>返回内部值</td><td>执行闭包并返回结果</td></tr>
+</table>
+
+<div class="code-block"><span class="keyword">fn</span> unwrap_or_default(input: Option&lt;i32&gt;) -> i32 {
+    input.unwrap_or(<span class="string">0</span>)
+}
+
+assert_eq!(unwrap_or_default(Some(<span class="string">5</span>)), <span class="string">5</span>);
+assert_eq!(unwrap_or_default(None), <span class="string">0</span>);</div>
+
+<h2>5. <code>map</code> 与 <code>and_then</code></h2>
+<p><code>map</code> 和 <code>and_then</code> 是组合器（combinator），让你可以优雅地链式处理 Option/Result：</p>
+
+<div class="code-block"><span class="comment">// map: 将 Ok/Some 中的值转换，Err/None 保持不变</span>
+<span class="keyword">fn</span> parse_and_double(s: &str) -> Option&lt;i32&gt; {
+    s.parse::&lt;i32&gt;().ok().map(|n| n * <span class="string">2</span>)
+}
+
+assert_eq!(parse_and_double(<span class="string">"21"</span>), Some(<span class="string">42</span>));  <span class="comment">// 成功解析并翻倍</span>
+assert_eq!(parse_and_double(<span class="string">"x"</span>), None);           <span class="comment">// 解析失败</span></div>
+
+<p><code>and_then</code> 与 <code>map</code> 的区别：</p>
+<ul>
+  <li><code>map</code> 的闭包返回普通值（<code>T -> U</code>），结果被包裹在 <code>Option&lt;U&gt;</code> 中</li>
+  <li><code>and_then</code> 的闭包返回 <code>Option&lt;U&gt;</code>（<code>T -> Option&lt;U&gt;</code>），结果不会"双重包裹"</li>
+</ul>
+
+<h2>6. 自定义错误类型</h2>
+<p>对于复杂的应用，应创建自己的错误类型。通常需要实现 <code>Display</code> 和 <code>Error</code> trait。</p>
+
+<div class="code-block"><span class="keyword">use</span> std::fmt;
+
+#[derive(Debug)]
+<span class="keyword">enum</span> CalcError {
+    DivideByZero,
+    NegativeSquareRoot,
+}
+
+<span class="keyword">impl</span> fmt::Display <span class="keyword">for</span> CalcError {
+    <span class="keyword">fn</span> fmt(&self, f: &mut fmt::Formatter&lt;'_&gt;) -> fmt::Result {
+        <span class="keyword">match</span> self {
+            CalcError::DivideByZero => <span class="keyword">write!</span>(f, <span class="string">"cannot divide by zero"</span>),
+            CalcError::NegativeSquareRoot => <span class="keyword">write!</span>(f, <span class="string">"cannot sqrt negative"</span>),
+        }
+    }
+}
+
+<span class="keyword">impl</span> std::error::Error <span class="keyword">for</span> CalcError {}</div>
+
+<p>然后可以在函数中使用自定义错误：</p>
+<div class="code-block"><span class="keyword">fn</span> sqrt_and_divide(a: f64, b: f64) -> Result&lt;f64, CalcError&gt; {
+    <span class="keyword">if</span> a &lt; <span class="string">0.0</span> {
+        <span class="keyword">return</span> Err(CalcError::NegativeSquareRoot);
+    }
+    <span class="keyword">if</span> b == <span class="string">0.0</span> {
+        <span class="keyword">return</span> Err(CalcError::DivideByZero);
+    }
+    Ok((a.sqrt()) / b)
+}</div>
+
+<h2>7. 综合：多错误处理</h2>
+<p>在实践中，一个函数可能需要处理多种不同类型的操作，每一步都可能失败。</p>
+
+<div class="code-block"><span class="comment">// 解析多个字符串为 i32，收集结果或报告第一个错误</span>
+<span class="keyword">fn</span> process_numbers(nums: &[&str]) -> Result&lt;Vec&lt;i32&gt;, String&gt; {
+    nums.iter()
+        .map(|s| {
+            s.parse::&lt;i32&gt;()
+                .map_err(|_| format!(<span class="string">"cannot parse '{}' as i32"</span>, s))
+        })
+        .collect()
+    <span class="comment">// collect 遇到 Err 会直接返回第一个错误</span>
+}
+
+assert_eq!(
+    process_numbers(&[<span class="string">"1"</span>, <span class="string">"2"</span>, <span class="string">"3"</span>]),
+    Ok(vec![<span class="string">1</span>, <span class="string">2</span>, <span class="string">3</span>])
+);
+assert!(process_numbers(&[<span class="string">"1"</span>, <span class="string">"x"</span>, <span class="string">"3"</span>]).is_err());</div>
+
+<div class="tip">
+  <strong>Rust 错误处理的哲学：</strong>与其他语言"抛出异常让上层处理"的哲学不同，Rust 鼓励你<strong>显式处理错误</strong>。这带来了几个好处：错误类型是函数签名的一部分（自文档化）；调用者不会被意外的异常击中；编译器确保你处理了所有错误路径。随着你使用 <code>?</code>、<code>map</code>、<code>and_then</code> 等工具越来越熟练，这种"显式但优雅"的写法会让你感到很舒适。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter08_error/mod.rs</code> 文件，查看并运行测试验证你的理解。</p>
+
+<ol>
+  <li><strong>panic 使用场景</strong> — 在输入为负数时 panic</li>
+  <li><strong>Result 处理可恢复错误</strong> — 用 Result 实现安全除法</li>
+  <li><strong>? 运算符传播错误</strong> — 用 ? 传播除法错误</li>
+  <li><strong>unwrap 与 expect</strong> — 使用 unwrap_or 提供默认值</li>
+  <li><strong>map</strong> — 使用 map 链式处理 Option</li>
+  <li><strong>自定义错误类型</strong> — 定义 CalcError 枚举</li>
+  <li><strong>使用自定义错误</strong> — 编写使用 CalcError 的函数</li>
+  <li><strong>综合：多错误处理</strong> — 批量处理字符串解析，收集错误</li>
+</ol>
+
+</body>
+</html>

@@ -4,6 +4,9 @@ mod chapter03_borrow;
 mod chapter04_string;
 mod chapter05_struct_enum;
 mod chapter06_lifetime;
+mod chapter07_generics_trait;
+mod chapter08_error;
+mod chapter09_closure_iter;
 
 fn main() {
     println!("╔══════════════════════════════════════╗");

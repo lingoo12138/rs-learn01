@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第07章：泛型与 trait</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第07章：泛型与 trait</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>理解泛型的概念，编写泛型函数和泛型结构体</li>
+  <li>定义 trait 并为类型实现 trait</li>
+  <li>使用 trait 默认方法</li>
+  <li>使用 <code>impl Trait</code> 语法和 <code>where</code> 子句编写 trait bound</li>
+  <li>返回实现了某 trait 的类型</li>
+  <li>使用派生（derive）trait 自动实现常见行为</li>
+  <li>编写泛型与 trait bound 结合的代码</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>如果你有 Java 或 C# 背景，Rust 的泛型类似 Java 的泛型（<code>&lt;T&gt;</code>）或 C# 的模板，但 Rust 的泛型在编译时执行<strong>单态化（monomorphization）</strong>——每种具体类型都会生成一份独立的代码，没有运行时代价！trait 则类似于 Java 的 interface 或 C++ 的抽象类，但更灵活，可以为<strong>已有类型</strong>实现已有的 trait。
+</div>
+
+<h2>1. 泛型（Generics）</h2>
+
+<h3>1.1 泛型函数</h3>
+<p>泛型允许我们编写可以处理<strong>多种类型</strong>的函数，而不需要为每种类型重复编写代码。</p>
+<div class="code-block"><span class="keyword">fn</span> identity&lt;T&gt;(x: T) -> T {
+    x
+}
+
+<span class="keyword">let</span> a = identity(<span class="string">5</span>);        <span class="comment">// T 被推导为 i32</span>
+<span class="keyword">let</span> b = identity(<span class="string">"hello"</span>);  <span class="comment">// T 被推导为 &str</span>
+<span class="keyword">let</span> c = identity(<span class="string">3.14</span>);     <span class="comment">// T 被推导为 f64</span></div>
+<p><code>&lt;T&gt;</code> 是类型参数的声明，放在函数名之后、参数列表之前。它表示"这个函数接受一个任意类型 T 的参数，并返回同类型的值"。</p>
+
+<div class="note">
+  <strong>注意：</strong>泛型类型参数通常使用大写的单个字母命名：<code>T</code>（Type）、<code>E</code>（Error）、<code>K</code>（Key）、<code>V</code>（Value）等。这是 Rust 社区的惯例，但不是强制要求。
+</div>
+
+<h3>1.2 多个类型参数</h3>
+<p>泛型可以有多个类型参数。</p>
+<div class="code-block"><span class="keyword">fn</span> swap&lt;T, U&gt;(a: T, b: U) -> (U, T) {
+    (b, a)
+}
+
+<span class="keyword">let</span> result = swap(<span class="string">42</span>, <span class="string">"hello"</span>);
+<span class="comment">// result 的类型是 (&str, i32)</span></div>
+
+<h3>1.3 泛型结构体</h3>
+<p>结构体也可以使用泛型参数，让字段可以接受不同的类型。</p>
+<div class="code-block"><span class="keyword">struct</span> Point&lt;T&gt; {
+    x: T,
+    y: T,
+}
+
+<span class="keyword">let</span> int_point = Point { x: <span class="string">5</span>, y: <span class="string">10</span> };     <span class="comment">// Point&lt;i32&gt;</span>
+<span class="keyword">let</span> float_point = Point { x: <span class="string">1.0</span>, y: <span class="string">2.0</span> }; <span class="comment">// Point&lt;f64&gt;</span></div>
+<p>如果 x 和 y 可能是不同类型，可以使用多个类型参数：</p>
+<div class="code-block"><span class="keyword">struct</span> Pair&lt;T, U&gt; {
+    first: T,
+    second: U,
+}</div>
+
+<h2>2. trait（特征）</h2>
+
+<h3>2.1 定义 trait</h3>
+<p>Trait 定义了一组<strong>方法签名</strong>（有时也包含默认实现），描述了某种行为。任何实现了该 trait 的类型都必须提供这些方法的具体实现（除非有默认实现）。</p>
+<div class="code-block"><span class="keyword">trait</span> Greet {
+    <span class="keyword">fn</span> greet(&self) -> String;
+}</div>
+
+<h3>2.2 为类型实现 trait</h3>
+<p>使用 <code>impl Trait for Type</code> 语法为某个类型实现 trait。</p>
+<div class="code-block"><span class="keyword">struct</span> Dog {
+    name: String,
+}
+
+<span class="keyword">impl</span> Greet <span class="keyword">for</span> Dog {
+    <span class="keyword">fn</span> greet(&self) -> String {
+        format!(<span class="string">"Woof! I'm {}"</span>, self.name)
+    }
+}
+
+<span class="keyword">struct</span> Cat;
+<span class="keyword">impl</span> Greet <span class="keyword">for</span> Cat {
+    <span class="keyword">fn</span> greet(&self) -> String {
+        format!(<span class="string">"Meow!"</span>)
+    }
+}
+
+<span class="keyword">let</span> dog = Dog { name: <span class="string">"Buddy"</span>.into() };
+<span class="keyword">let</span> cat = Cat;
+println!(<span class="string">"{}"</span>, dog.greet());  <span class="comment">// "Woof! I'm Buddy"</span>
+println!(<span class="string">"{}"</span>, cat.greet());  <span class="comment">// "Meow!"</span></div>
+
+<h3>2.3 默认实现</h3>
+<p>Trait 方法可以有<strong>默认实现</strong>。实现该 trait 时可以选择覆盖它，也可以直接使用默认实现。</p>
+<div class="code-block"><span class="keyword">trait</span> Hello {
+    <span class="keyword">fn</span> hello(&self) -> String {
+        <span class="string">"Hello!"</span>.to_string()
+    }
+}
+
+<span class="comment">// 使用默认实现，不需要重新实现 hello 方法</span>
+<span class="keyword">struct</span> Person;
+<span class="keyword">impl</span> Hello <span class="keyword">for</span> Person {}
+
+<span class="comment">// 覆盖默认实现</span>
+<span class="keyword">struct</span> Robot;
+<span class="keyword">impl</span> Hello <span class="keyword">for</span> Robot {
+    <span class="keyword">fn</span> hello(&self) -> String {
+        <span class="string">"Beep boop!"</span>.to_string()
+    }
+}
+
+assert_eq!(Person.hello(), <span class="string">"Hello!"</span>);
+assert_eq!(Robot.hello(), <span class="string">"Beep boop!"</span>);</div>
+
+<h2>3. Trait Bound（特征约束）</h2>
+
+<h3>3.1 <code>impl Trait</code> 语法</h3>
+<p>使用 <code>impl Trait</code> 作为参数类型，表示"这个参数可以是任何实现了该 trait 的类型"。</p>
+<div class="code-block"><span class="keyword">fn</span> say_greet(item: <span class="keyword">impl</span> Greet) -> String {
+    item.greet()
+}
+
+<span class="comment">// 任何实现了 Greet 的类型都可以传入</span>
+say_greet(Dog { name: <span class="string">"Rusty"</span>.into() });
+say_greet(Cat);</div>
+
+<h3>3.2 完整 Trait Bound 语法</h3>
+<p>对于更复杂的情况（如多个参数需要同一 trait，或需要额外约束），可以使用完整的 trait bound 语法：</p>
+<div class="code-block"><span class="comment">// 单个 bound</span>
+<span class="keyword">fn</span> greet_twice&lt;T: Greet&gt;(item: T) -> String {
+    format!(<span class="string">"{} and again {}"</span>, item.greet(), item.greet())
+}</div>
+
+<h3>3.3 <code>where</code> 子句</h3>
+<p>当 trait bound 较多时，使用 <code>where</code> 子句使代码更清晰：</p>
+<div class="code-block"><span class="keyword">fn</span> greet_twice&lt;T&gt;(item: T) -> String
+<span class="keyword">where</span>
+    T: Greet,
+{
+    format!(<span class="string">"{} and again {}"</span>, item.greet(), item.greet())
+}</div>
+
+<h3>3.4 返回 <code>impl Trait</code></h3>
+<p>函数可以返回一个实现了某 trait 的类型，而不暴露具体类型。</p>
+<div class="code-block"><span class="keyword">fn</span> make_greeter() -> <span class="keyword">impl</span> Greet {
+    Dog { name: <span class="string">"Rusty"</span>.into() }
+}
+
+<span class="comment">// 调用者只知道返回值实现了 Greet trait</span>
+<span class="keyword">let</span> g = make_greeter();
+println!(<span class="string">"{}"</span>, g.greet());  <span class="comment">// "Woof! I'm Rusty"</span></div>
+
+<div class="note">
+  <strong>注意：</strong>返回 <code>impl Trait</code> 的类型必须在函数体内<strong>唯一确定</strong>（不能有时返回 Dog，有时返回 Cat）。如果需要返回多种类型，需要使用后面章节会介绍的 <code>Box&lt;dyn Trait&gt;</code>。
+</div>
+
+<h2>4. 派生 Trait（Derive）</h2>
+<p>Rust 可以自动为类型实现一些标准 trait，只需要在类型定义前加上 <code>#[derive(...)]</code> 属性。</p>
+
+<div class="code-block"><span class="comment">// 自动实现 Debug（格式化输出）和 PartialEq（相等比较）</span>
+#[derive(Debug, PartialEq)]
+<span class="keyword">struct</span> Point {
+    x: i32,
+    y: i32,
+}
+
+<span class="keyword">let</span> p1 = Point { x: <span class="string">1</span>, y: <span class="string">2</span> };
+<span class="keyword">let</span> p2 = Point { x: <span class="string">1</span>, y: <span class="string">2</span> };
+println!(<span class="string">"{:?}"</span>, p1);              <span class="comment">// 输出: Point { x: 1, y: 2 }</span>
+assert_eq!(p1, p2);                  <span class="comment">// PartialEq 允许 == 比较</span></div>
+
+<p>常用的派生 trait 包括：</p>
+<table>
+  <tr><th>Trait</th><th>作用</th></tr>
+  <tr><td><code>Debug</code></td><td>允许使用 <code>{:?}</code> 格式化输出</td></tr>
+  <tr><td><code>PartialEq</code></td><td>允许使用 <code>==</code> 和 <code>!=</code> 比较</td></tr>
+  <tr><td><code>Eq</code></td><td><code>PartialEq</code> 的强化版（额外保证自反性）</td></tr>
+  <tr><td><code>Clone</code></td><td>允许显式克隆（<code>.clone()</code>）</td></tr>
+  <tr><td><code>Copy</code></td><td>允许按位复制（隐式复制，要求所有字段都实现了 Copy）</td></tr>
+  <tr><td><code>Hash</code></td><td>允许计算哈希值</td></tr>
+  <tr><td><code>Default</code></td><td>提供 <code>default()</code> 方法创建默认值</td></tr>
+</table>
+
+<h2>5. 综合：泛型 + Trait Bound</h2>
+<p>泛型和 trait bound 结合使用，可以编写非常灵活且类型安全的代码。</p>
+
+<div class="code-block"><span class="comment">// 泛型函数，T 必须实现 PartialOrd（可比较大小）</span>
+<span class="keyword">fn</span> max_of&lt;T: PartialOrd&gt;(a: T, b: T) -> T {
+    <span class="keyword">if</span> a > b { a } <span class="keyword">else</span> { b }
+}
+
+assert_eq!(max_of(<span class="string">3</span>, <span class="string">7</span>), <span class="string">7</span>);       <span class="comment">// i32</span>
+assert_eq!(max_of(<span class="string">"abc"</span>, <span class="string">"xyz"</span>), <span class="string">"xyz"</span>);  <span class="comment">// &str</span></div>
+
+<div class="tip">
+  <strong>理解核心思路：</strong>泛型让代码可以<strong>适应多种类型</strong>，trait bound 确保这些类型<strong>支持必要的操作</strong>。泛型解决了"什么类型都能用"的问题，trait bound 解决了"用什么方法"的问题。二者结合，就是 Rust 静态多态（static dispatch）的基础。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter07_generics_trait/mod.rs</code> 文件，查看并运行测试验证你的理解。</p>
+
+<ol>
+  <li><strong>泛型函数</strong> — 实现一个可以返回任何类型的 identity 函数</li>
+  <li><strong>泛型结构体</strong> — 创建并使用泛型 Pair 结构体</li>
+  <li><strong>定义 trait</strong> — 定义一个 Greet trait</li>
+  <li><strong>为类型实现 trait</strong> — 为 Dog 实现 Greet trait</li>
+  <li><strong>trait 默认实现</strong> — 使用 Hello trait 的默认实现</li>
+  <li><strong>impl Trait 参数</strong> — 编写接受 impl Greet 的函数</li>
+  <li><strong>where 子句</strong> — 使用 where 子句编写 trait bound</li>
+  <li><strong>返回 impl Trait</strong> — 返回实现了 Greet 的类型</li>
+  <li><strong>派生 trait</strong> — 使用 #[derive] 自动实现 trait</li>
+  <li><strong>综合：泛型 + trait bound</strong> — 编写 max_of 泛型函数</li>
+</ol>
+
+</body>
+</html>
