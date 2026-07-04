@@ -1,6 +1,7 @@
 // 第02章：所有权
 // 阅读代码理解所有权机制，然后运行 cargo test 验证
 #![allow(dead_code)]
+pub mod practice;
 
 /// 练习1：将 String 的所有权从 s1 移动到 s2，返回 s2
 /// 练习2 与本练习代码相同，但侧重于理解为什么移动后 s1 不能使用

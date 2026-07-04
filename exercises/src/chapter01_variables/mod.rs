@@ -1,6 +1,7 @@
 // 第01章：变量与类型
 // 阅读每个练习的说明，理解代码含义，然后运行 cargo test 验证
 #![allow(dead_code)]
+pub mod practice;
 
 /// 练习1：声明一个不可变变量 x，值为 10
 pub fn exercise1() -> i32 {

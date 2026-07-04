@@ -1,6 +1,7 @@
 // 第03章：借用与引用
 // 阅读代码理解引用机制，然后运行 cargo test 验证
 #![allow(dead_code)]
+pub mod practice;
 
 /// 练习1：创建对 i32 值的不可变引用
 pub fn exercise1() -> i32 {
