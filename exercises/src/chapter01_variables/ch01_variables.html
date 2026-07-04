@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>第01章：变量与类型</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第01章：变量与类型</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>理解 Rust 中变量的不可变性（immutability）概念</li>
+  <li>掌握 <code>let</code>、<code>let mut</code> 和 <code>const</code> 的区别与使用场景</li>
+  <li>区分 Rust 的标量类型：整型、浮点型、布尔型、字符型</li>
+  <li>使用元组（tuple）和数组（array）两种复合类型</li>
+  <li>理解类型推导（type inference）与类型标注（type annotation）的关系</li>
+  <li>能够在代码中正确选择和使用合适的类型</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>如果你来自 JavaScript 或 Python 背景，请注意 Rust 是<strong>静态类型</strong>语言——每个变量的类型在编译时就必须确定。这看起来多了一些输入工作，但能帮你<strong>在运行之前</strong>捕获大量类型相关的 bug。相比之下，JavaScript 的 <code>let x = 10</code> 可以在下一行变成字符串，而 Rust 不允许这种隐式类型转换。
+</div>
+
+<h2>1. 变量声明</h2>
+
+<h3>1.1 不可变变量 — <code>let</code></h3>
+<p>在 Rust 中，使用 <code>let</code> 声明的变量默认是<strong>不可变（immutable）</strong>的。一旦绑定了一个值，就不能再改变它。</p>
+<div class="code-block"><span class="keyword">let</span> x = <span class="string">5</span>;
+<span class="comment">// x = 6; // 编译错误！x 是不可变的</span></div>
+<p>这种设计让代码更容易推理，也避免了意外的值修改带来的 bug。</p>
+
+<h3>1.2 可变变量 — <code>let mut</code></h3>
+<p>如果希望变量可变，需要在 <code>let</code> 后加上 <code>mut</code> 关键字（mutable 的缩写）。</p>
+<div class="code-block"><span class="keyword">let mut</span> y = <span class="string">1</span>;
+y = y + <span class="string">1</span>;  <span class="comment">// 可以修改</span>
+println!(<span class="string">"y = {}"</span>, y);  <span class="comment">// 输出: y = 2</span></div>
+<p>使用 <code>mut</code> 时，<code>mut</code> 关键字放在变量名之前，表示这个绑定是可变的。只有明确声明了 <code>mut</code> 的变量才能被重新赋值。</p>
+
+<div class="note">
+  <strong>注意：</strong><code>let</code> 声明的变量不可变，但并非常量。你可以用 <code>let</code> 重新声明同名变量（这叫做"遮蔽"，shadowing），覆盖之前的绑定。这与 <code>const</code> 常量不同。
+</div>
+
+<h3>1.3 常量 — <code>const</code></h3>
+<p>常量使用 <code>const</code> 关键字声明，并且<strong>必须</strong>标注类型。常量在整个程序生命周期中永远不变，且必须在编译时就能计算出值。</p>
+<div class="code-block"><span class="keyword">const</span> MAX_POINTS: <span class="type">u32</span> = <span class="string">100_000</span>;
+<span class="keyword">const</span> PI: <span class="type">f64</span> = <span class="string">3.1415926</span>;</div>
+<p>常量与不可变变量的区别：</p>
+<ul>
+  <li>常量使用 <code>const</code> 而不是 <code>let</code></li>
+  <li>常量必须标注类型</li>
+  <li>常量可以在任何作用域中声明，包括全局作用域</li>
+  <li>常量只能被设置为常量表达式，不能是函数调用的结果或其他运行时计算的值</li>
+  <li>常量不存在"遮蔽"概念——不能重复声明同名常量</li>
+</ul>
+
+<h3>1.4 变量遮蔽（Shadowing）</h3>
+<p>Rust 允许用同一个名字声明新的变量，新的变量会"遮蔽"旧的变量。遮蔽可以改变变量的类型。</p>
+<div class="code-block"><span class="keyword">let</span> spaces = <span class="string">"   "</span>;       <span class="comment">// spaces 是 &str 类型</span>
+<span class="keyword">let</span> spaces = spaces.len();  <span class="comment">// 现在 spaces 是 usize 类型（数字）</span></div>
+<p>这在需要转换变量类型时非常有用，而不需要创建不同的名字如 <code>spaces_str</code> 和 <code>spaces_num</code>。</p>
+
+<h2>2. 标量类型</h2>
+<p>Rust 的标量类型（scalar types）表示<strong>单个值</strong>。Rust 有四种主要的标量类型：整型、浮点型、布尔型和字符型。</p>
+
+<h3>2.1 整型（Integer Types）</h3>
+<table>
+  <tr>
+    <th>长度</th>
+    <th>有符号</th>
+    <th>无符号</th>
+    <th>取值范围</th>
+  </tr>
+  <tr>
+    <td>8 位</td>
+    <td><code>i8</code></td>
+    <td><code>u8</code></td>
+    <td>-128 ~ 127 / 0 ~ 255</td>
+  </tr>
+  <tr>
+    <td>16 位</td>
+    <td><code>i16</code></td>
+    <td><code>u16</code></td>
+    <td>-32,768 ~ 32,767 / 0 ~ 65,535</td>
+  </tr>
+  <tr>
+    <td>32 位</td>
+    <td><code>i32</code></td>
+    <td><code>u32</code></td>
+    <td>-2^31 ~ 2^31-1 / 0 ~ 2^32-1</td>
+  </tr>
+  <tr>
+    <td>64 位</td>
+    <td><code>i64</code></td>
+    <td><code>u64</code></td>
+    <td>-2^63 ~ 2^63-1 / 0 ~ 2^64-1</td>
+  </tr>
+  <tr>
+    <td>128 位</td>
+    <td><code>i128</code></td>
+    <td><code>u128</code></td>
+    <td>超大范围</td>
+  </tr>
+  <tr>
+    <td>arch（依平台）</td>
+    <td><code>isize</code></td>
+    <td><code>usize</code></td>
+    <td>32 或 64 位（取决于 CPU 架构）</td>
+  </tr>
+</table>
+<p>默认整型是 <code>i32</code>。数字字面量中可以加下划线增强可读性，例如 <code>1_000_000</code>。</p>
+
+<div class="code-block"><span class="keyword">let</span> a: <span class="type">i8</span> = <span class="string">-128</span>;           <span class="comment">// 显式标注 i8</span>
+<span class="keyword">let</span> b = <span class="string">42</span>;                   <span class="comment">// 默认 i32</span>
+<span class="keyword">let</span> c: <span class="type">u32</span> = <span class="string">255</span>;            <span class="comment">// 无符号 32 位</span>
+<span class="keyword">let</span> d = <span class="string">1_000_000</span>;            <span class="comment">// 带分隔符，更易读</span>
+<span class="keyword">let</span> e = <span class="string">0xFF</span>;                 <span class="comment">// 十六进制：255</span>
+<span class="keyword">let</span> f = <span class="string">0o77</span>;                 <span class="comment">// 八进制：63</span>
+<span class="keyword">let</span> g = <span class="string">0b1111</span>;               <span class="comment">// 二进制：15</span>
+<span class="keyword">let</span> h: <span class="type">usize</span> = <span class="string">0</span>;            <span class="comment">// 常用于数组索引</span></div>
+
+<h3>2.2 浮点型（Floating-Point Types）</h3>
+<table>
+  <tr>
+    <th>类型</th>
+    <th>精度</th>
+    <th>说明</th>
+  </tr>
+  <tr>
+    <td><code>f32</code></td>
+    <td>单精度（约 6-7 位有效数字）</td>
+    <td>32 位浮点，占用空间小</td>
+  </tr>
+  <tr>
+    <td><code>f64</code></td>
+    <td>双精度（约 15-16 位有效数字）</td>
+    <td>默认类型，速度和精度平衡较好</td>
+  </tr>
+</table>
+<p>默认浮点类型是 <code>f64</code>，因为在现代 CPU 上 <code>f64</code> 和 <code>f32</code> 速度相近，但精度更高。</p>
+
+<div class="code-block"><span class="keyword">let</span> x = <span class="string">3.14</span>;                <span class="comment">// 默认 f64</span>
+<span class="keyword">let</span> y: <span class="type">f32</span> = <span class="string">2.5</span>;            <span class="comment">// 显式标注 f32</span>
+<span class="keyword">let</span> z = x + y;               <span class="comment">// 注意：f64 和 f32 不能直接运算</span></div>
+
+<div class="note">
+  <strong>注意：</strong>Rust 不允许不同数值类型之间<strong>隐式转换</strong>！例如 <code>i32</code> 和 <code>f64</code> 不能直接做加法，必须使用 <code>as</code> 关键字显式转换。这与 C 语言的隐式类型提升完全不同，能有效防止数值精度丢失的问题。
+</div>
+
+<h3>2.3 布尔型（Boolean Type）</h3>
+<p>布尔类型用 <code>bool</code> 表示，有两个值：<code>true</code> 和 <code>false</code>。占用 1 个字节。</p>
+
+<div class="code-block"><span class="keyword">let</span> is_ok: <span class="type">bool</span> = <span class="keyword">true</span>;
+<span class="keyword">let</span> is_not = <span class="keyword">false</span>;        <span class="comment">// 类型推导为 bool</span>
+<span class="keyword">let</span> is_even = <span class="string">42</span> % <span class="string">2</span> == <span class="string">0</span>;  <span class="comment">// 布尔表达式</span></div>
+
+<h3>2.4 字符型（Character Type）</h3>
+<p>字符类型用 <code>char</code> 表示，使用单引号括起来。Rust 的 <code>char</code> 是 <strong>4 字节（Unicode 标量值）</strong>，可以表示任何 Unicode 字符，远不止 ASCII。</p>
+
+<div class="code-block"><span class="keyword">let</span> c = <span class="string">'z'</span>;
+<span class="keyword">let</span> z: <span class="type">char</span> = <span class="string">'中'</span>;        <span class="comment">// 中文也是合法的 char</span>
+<span class="keyword">let</span> heart = <span class="string">'❤'</span>;
+<span class="keyword">let</span> emoji = <span class="string">'🦀'</span>;          <span class="comment">// 甚至 emoji！</span></div>
+
+<div class="tip">
+  <strong>与其他语言的区别：</strong>在 C 语言中，<code>char</code> 通常是 1 字节（ASCII），只能表示英文字母和数字。在 JavaScript 中，字符是 UTF-16 编码，一个"字符"可能占用 2 个或 4 个字节。而 Rust 的 <code>char</code> 固定为 <strong>4 字节</strong>，能表示所有 Unicode 字符，但也意味着一个 <code>char</code> 占用更多内存。通常字符串中存储的是 UTF-8 编码的字节序列，而非 <code>char</code> 数组。
+</div>
+
+<h2>3. 复合类型</h2>
+<p>复合类型（compound types）可以将多个值组合成一个类型。Rust 提供了两种内置的复合类型：元组（tuple）和数组（array）。</p>
+
+<h3>3.1 元组（Tuple）</h3>
+<p>元组将<strong>不同类型</strong>的多个值组合在一起，长度固定（声明后不能增加或删除元素）。</p>
+
+<div class="code-block"><span class="comment">// 声明元组</span>
+<span class="keyword">let</span> tup: (<span class="type">i32</span>, <span class="type">f64</span>, <span class="type">char</span>) = (<span class="string">500</span>, <span class="string">6.4</span>, <span class="string">'R'</span>);
+
+<span class="comment">// 模式匹配解构（destructuring）</span>
+<span class="keyword">let</span> (x, y, z) = tup;
+println!(<span class="string">"x = {}, y = {}, z = {}"</span>, x, y, z);  <span class="comment">// x = 500, y = 6.4, z = R</span>
+
+<span class="comment">// 索引访问（从 0 开始）</span>
+<span class="keyword">let</span> first = tup.<span class="string">0</span>;
+<span class="keyword">let</span> second = tup.<span class="string">1</span>;
+println!(<span class="string">"first = {}, second = {}"</span>, first, second);</div>
+
+<p>元组的值可以是任意类型，包括其他元组：</p>
+<div class="code-block"><span class="keyword">let</span> nested = ((<span class="string">1</span>, <span class="string">2</span>), (<span class="string">3</span>, <span class="string">4</span>, <span class="string">5</span>));
+<span class="keyword">let</span> a = nested.<span class="string">0</span>.<span class="string">1</span>;  <span class="comment">// a = 2</span></div>
+
+<h3>3.2 数组（Array）</h3>
+<p>数组将<strong>相同类型</strong>的多个值存储在连续内存中，长度固定（编译时确定）。</p>
+
+<div class="code-block"><span class="comment">// 声明数组——类型标注为 [类型; 长度]</span>
+<span class="keyword">let</span> arr: [<span class="type">i32</span>; <span class="string">5</span>] = [<span class="string">1</span>, <span class="string">2</span>, <span class="string">3</span>, <span class="string">4</span>, <span class="string">5</span>];
+
+<span class="comment">// 简写——初始值重复 N 次</span>
+<span class="keyword">let</span> zeros = [<span class="string">0</span>; <span class="string">10</span>];  <span class="comment">// [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]</span>
+
+<span class="comment">// 索引访问（从 0 开始）</span>
+<span class="keyword">let</span> first = arr[<span class="string">0</span>];  <span class="comment">// 1</span>
+<span class="keyword">let</span> third = arr[<span class="string">2</span>];  <span class="comment">// 3</span>
+
+<span class="comment">// 越界访问会在运行时 panic！</span>
+<span class="comment">// let bad = arr[10]; // 编译通过但运行时报错</span></div>
+
+<div class="note">
+  <strong>注意：</strong>Rust 的数组在<strong>编译时</strong>长度固定，与 C 语言类似。如果你需要可变长度的集合，应当使用 <code>Vec&lt;T&gt;</code>（向量，后续章节会介绍）。当使用索引访问数组元素时，Rust 会进行<strong>运行时边界检查</strong>，越界访问会导致程序 panic 而不是读取非法内存，这保证了内存安全。
+</div>
+
+<h2>4. 类型推导</h2>
+<p>Rust 的编译器非常智能，能够根据上下文<strong>自动推导</strong>变量的类型。这意味着你不需要在每个地方都标注类型。</p>
+
+<h3>4.1 自动推导</h3>
+<div class="code-block"><span class="keyword">let</span> x = <span class="string">42</span>;          <span class="comment">// 编译器推导出 x 是 i32（默认整型）</span>
+<span class="keyword">let</span> y = <span class="string">3.14</span>;        <span class="comment">// 编译器推导出 y 是 f64（默认浮点）</span>
+<span class="keyword">let</span> z = <span class="keyword">true</span>;        <span class="comment">// 编译器推导出 z 是 bool</span>
+
+<span class="comment">// 根据使用方式推导</span>
+<span class="keyword">let</span> guess = <span class="string">42</span>;
+<span class="keyword">let</span> result = guess + <span class="string">1</span>;  <span class="comment">// guess 和 result 都是 i32</span></div>
+
+<h3>4.2 类型标注</h3>
+<p>当需要指定特定类型（而非默认类型）时，可以使用<strong>类型标注</strong>：</p>
+
+<div class="code-block"><span class="keyword">let</span> x: <span class="type">u8</span> = <span class="string">255</span>;       <span class="comment">// 标注为 u8，而不是默认的 i32</span>
+<span class="keyword">let</span> y: <span class="type">i64</span> = <span class="string">42</span>;       <span class="comment">// 标注为 i64</span>
+<span class="keyword">let</span> z: <span class="type">f32</span> = <span class="string">1.0</span>;      <span class="comment">// 标注为 f32</span></div>
+
+<h3>4.3 推导失败的情况</h3>
+<p>某些情况下，编译器无法唯一确定类型，需要显式标注：</p>
+
+<div class="code-block"><span class="comment">// 以下代码无法编译——编译器无法确定类型</span>
+<span class="comment">// let guess = "42".parse().expect("not a number");</span>
+
+<span class="comment">// 需要显式标注类型</span>
+<span class="keyword">let</span> guess: <span class="type">u32</span> = <span class="string">"42"</span>.parse().expect(<span class="string">"not a number"</span>);
+<span class="comment">// 或者使用 "turbofish" 语法</span>
+<span class="keyword">let</span> guess = <span class="string">"42"</span>.parse::&lt;<span class="type">u32</span>&gt;().expect(<span class="string">"not a number"</span>);</div>
+
+<div class="tip">
+  <strong>理解类型推导：</strong>类型推导是 Rust 编译器的"超能力"之一。与 TypeScript 类似，你可以在很多情况下省略类型标注，让编译器来完成推理工作。但 <strong>Rust 的类型推导更彻底</strong>——它是语言规范的一部分，而不仅仅是一个类型系统插件。当然，在公共 API（函数签名、结构体字段等）中，Rust 要求显式标注类型，这有助于代码的可读性和文档化。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter01_variables/mod.rs</code> 文件，找到对应的函数填空，然后运行 <code>cargo test</code> 验证你的答案。</p>
+
+<ol>
+  <li>
+    <strong>声明变量</strong> — 声明一个不可变变量 <code>x</code>，值为 <code>10</code>。<br>
+    提示：使用 <code>let</code> 关键字，不需要 <code>mut</code>。
+  </li>
+  <li>
+    <strong>可变变量</strong> — 声明可变变量 <code>y</code>，初始化为 <code>1</code>，然后加 <code>1</code>。<br>
+    提示：使用 <code>let mut</code> 声明，然后做加法运算。
+  </li>
+  <li>
+    <strong>类型标注</strong> — 声明一个 <code>u8</code> 类型变量，值为 <code>255</code>。<br>
+    提示：<code>u8</code> 的最大值就是 <code>255</code>，注意不要超出范围。
+  </li>
+  <li>
+    <strong>布尔运算</strong> — 实现函数 <code>is_even</code> 判断偶数。<br>
+    提示：使用 <code>%</code> 取模运算符，检查 <code>n % 2 == 0</code>。
+  </li>
+  <li>
+    <strong>字符类型</strong> — 返回 <code>char</code> 类型（可以是任意字符）。<br>
+    提示：使用单引号 <code>' '</code> 包裹字符，尝试返回一个非 ASCII 字符。
+  </li>
+  <li>
+    <strong>元组解构</strong> — 解构元组 <code>(1, "hello", 3.14)</code> 并返回特定位置值。<br>
+    提示：使用 <code>let (a, b, c) = tup;</code> 或索引访问 <code>tup.0</code>。
+  </li>
+  <li>
+    <strong>数组访问</strong> — 返回数组 <code>[10, 20, 30, 40, 50]</code> 的第三个元素。<br>
+    提示：数组索引从 0 开始，第三个元素的索引是 2。
+  </li>
+  <li>
+    <strong>常量定义</strong> — 定义一个常量 <code>MAX_POINTS: u32 = 100000</code>。<br>
+    提示：使用 <code>const</code> 关键字，必须标注类型。
+  </li>
+</ol>
+
+</body>
+</html>
