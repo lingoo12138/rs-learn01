@@ -1,4 +1,5 @@
 mod chapter01_variables;
+mod chapter02_ownership;
 
 fn main() {
     println!("╔══════════════════════════════════════╗");
