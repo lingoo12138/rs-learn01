@@ -1,3 +1,5 @@
+mod chapter01_variables;
+
 fn main() {
     println!("╔══════════════════════════════════════╗");
     println!("║     🦀 Rust 入门练习 🦀              ║");
