@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第06章：生命周期</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第06章：生命周期</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>理解为什么需要生命周期标注——防止悬垂引用</li>
+  <li>使用 <code>'a</code> 语法标注函数中的生命周期参数</li>
+  <li>在结构体中使用生命周期标注</li>
+  <li>理解生命周期省略规则（elision rules）</li>
+  <li>理解 <code>'static</code> 生命周期及其用途</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>生命周期（lifetimes）是 Rust 独有的概念，也是新手最感到困惑的部分之一。简单来说，<strong>生命周期就是"引用有效的作用域"</strong>。当你创建一个引用时，它的生命周期不能超过被引用数据的生命周期。Rust 编译器通过生命周期检查来确保你永远不会创建悬垂引用（dangling reference）。好消息是，大多数情况下编译器可以自动推断生命周期，你只需要在少数复杂情况下显式标注。
+</div>
+
+<h2>1. 为什么需要生命周期？</h2>
+
+<p>生命周期的主要目的是<strong>防止悬垂引用</strong>——即引用指向已经被释放的内存。</p>
+
+<div class="code-block"><span class="keyword">let</span> r;                <span class="comment">// ---------+-- 'a 开始</span>
+{                       <span class="comment">//          |</span>
+    <span class="keyword">let</span> x = <span class="string">5</span>;        <span class="comment">// -+-- 'b 开始|</span>
+    r = &x;             <span class="comment">//  |        |</span>
+}                       <span class="comment">// -+-- 'b 结束|</span>
+println!(<span class="string">"{}"</span>, r);   <span class="comment">// 编译错误！r 引用了已释放的 x</span></div>
+
+<p>上面的代码中，<code>r</code> 的生命周期 <code>'a</code> 比 <code>x</code> 的生命周期 <code>'b</code> 长。当代码试图在 <code>'b</code> 结束后使用 <code>r</code> 时，编译器会拒绝——因为 <code>r</code> 变成了悬垂引用。Rust 编译器在编译时通过<strong>借用检查器</strong>（borrow checker）进行生命周期检查，确保了内存安全。</p>
+
+<div class="note">
+  <strong>核心原则：</strong>任何引用的生命周期<strong>不能超出</strong>其引用的数据的生命周期。这是 Rust 保证内存安全的核心机制之一。如果没有生命周期检查，你可能会在不知不觉中访问已经释放的内存，导致程序崩溃或安全漏洞——而这在 C/C++ 中是常见的内存错误。
+</div>
+
+<h2>2. 生命周期标注语法</h2>
+
+<p>生命周期参数使用撇号 <code>'</code> 开头，通常使用小写字母，如 <code>'a</code>、<code>'b</code>。生命周期标注不会改变引用的实际存活时间，只是让借用检查器能够进行正确的分析。</p>
+
+<h3>2.1 函数中的生命周期</h3>
+
+<div class="code-block"><span class="comment">// 接收两个 &str 引用，返回存活时间较短的那个</span>
+<span class="keyword">fn</span> longest&lt;'a&gt;(x: &'a <span class="type">str</span>, y: &'a <span class="type">str</span>) -> &'a <span class="type">str</span> {
+    <span class="keyword">if</span> x.len() > y.len() { x } <span class="keyword">else</span> { y }
+}</div>
+
+<p>这里 <code>&lt;'a&gt;</code> 声明了一个生命周期参数 <code>'a</code>。函数签名表示：<code>x</code> 和 <code>y</code> 都至少存活了 <code>'a</code> 这么长，返回值也存活了 <code>'a</code> 这么长。实际上返回值的生命周期等于 <code>x</code> 和 <code>y</code> 中<strong>较短的那个</strong>。</p>
+
+<h3>2.2 多个生命周期参数</h3>
+
+<div class="code-block"><span class="keyword">fn</span> first_and_second&lt;'a, 'b&gt;(first: &'a <span class="type">str</span>, _second: &'b <span class="type">str</span>) -> &'a <span class="type">str</span> {
+    first  <span class="comment">// 返回值只和 first 的生命周期有关</span>
+}</div>
+
+<p>当返回值只与其中一个参数的生命周期相关时，可以为不同的参数标注不同的生命周期。</p>
+
+<h2>3. 结构体中的生命周期</h2>
+
+<p>当结构体的字段存储引用时，需要为每个引用字段标注生命周期：</p>
+
+<div class="code-block"><span class="keyword">struct</span> <span class="type">Excerpt</span>&lt;'a&gt; {
+    part: &'a <span class="type">str</span>,  <span class="comment">// 引用必须标注生命周期</span>
+}
+
+<span class="keyword">fn</span> main() {
+    <span class="keyword">let</span> novel = String::<span class="keyword">from</span>(<span class="string">"Call me Ishmael..."</span>);
+    <span class="keyword">let</span> first_sentence = novel.split(<span class="string">'.'</span>).next().unwrap();
+    <span class="keyword">let</span> e = <span class="type">Excerpt</span> { part: first_sentence };
+    println!(<span class="string">"{}"</span>, e.part);  <span class="comment">// 输出: "Call me Ishmael"</span>
+}</div>
+
+<p>这里 <code>Excerpt&lt;'a&gt;</code> 中的 <code>'a</code> 表示 <code>part</code> 引用的数据至少和 <code>Excerpt</code> 实例存活一样长。这样编译器就能确保 <code>part</code> 不会变成悬垂引用。</p>
+
+<div class="code-block"><span class="comment">// 也可以通过 impl 块为结构体中的方法标注生命周期</span>
+<span class="keyword">impl</span>&lt;'a&gt; <span class="type">Excerpt</span>&lt;'a&gt; {
+    <span class="keyword">fn</span> get_part(&<span class="keyword">self</span>) -> &'a <span class="type">str</span> {
+        self.part
+    }
+}</div>
+
+<h2>4. 生命周期省略规则（Elision Rules）</h2>
+
+<p>Rust 编译器内置了三条规定，在大多数常见情况下可以自动推断生命周期，无需显式标注：</p>
+
+<ol>
+  <li><strong>每个引用参数都有自己的生命周期参数。</strong></li>
+  <li><strong>如果只有一个输入生命周期参数，它会被赋予所有输出生命周期参数。</strong></li>
+  <li><strong>如果有多个输入生命周期参数，但其中一个是 <code>&amp;self</code> 或 <code>&amp;mut self</code>，那么 <code>self</code> 的生命周期被赋予所有输出生命周期参数。</strong></li>
+</ol>
+
+<div class="code-block"><span class="comment">// 由于省略规则，以下代码不需要显式标注生命周期</span>
+<span class="keyword">fn</span> first_word(s: &<span class="type">str</span>) -> &<span class="type">str</span> {
+    s.split_whitespace().next().unwrap_or(<span class="string">""</span>)
+}
+
+<span class="comment">// 编译器会自动将其扩展为：</span>
+<span class="comment">// fn first_word<'a>(s: &'a str) -> &'a str</span></div>
+
+<div class="tip">
+  <strong>理解省略规则：</strong>省略规则不是"推测"，而是一套确定的算法。如果编译器应用所有规则后仍然无法确定生命周期，就会报错，要求你显式标注。这意味着当看到需要标注生命周期的错误时，往往是因为函数的输入输出关系比较复杂，编译器无法自动确定。
+</div>
+
+<h2>5. 'static 生命周期</h2>
+
+<p><code>'static</code> 是一个特殊的生命周期，表示引用在整个程序运行期间都有效。字符串字面量就是 <code>'static</code> 生命周期：</p>
+
+<div class="code-block"><span class="keyword">let</span> s: &'static <span class="type">str</span> = <span class="string">"I live forever"</span>;</div>
+
+<p><code>'static</code> 并不罕见——所有字符串字面量都是 <code>'static</code>。但避免过度使用 <code>'static</code> 作为通用解决方案，它通常意味着你要存储的数据会存活整个程序生命周期。</p>
+
+<div class="note">
+  <strong>注意：</strong>看到 <code>'static</code> 约束时，不要立即认为引用真的存活了"整个程序"。更准确的理解是：<strong>只要程序在运行，被引用的数据就一直有效</strong>。将 <code>'static</code> 作为泛型约束用于 trait bound 的情况，与直接标注引用类型为 <code>&amp;'static</code> 的含义有所不同。随着学习的深入，你会逐渐理解这些细微差别。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter06_lifetime/mod.rs</code> 文件，找到对应的函数填空，然后运行 <code>cargo test</code> 验证你的答案。</p>
+
+<ol>
+  <li><strong>函数生命周期</strong> — 标注 <code>longest</code> 函数的生命周期参数。</li>
+  <li><strong>结构体中的生命周期</strong> — 使用 <code>Excerpt</code> 结构体存储引用。</li>
+  <li><strong>多个生命周期参数</strong> — 使用两个不同的生命周期标注参数。</li>
+  <li><strong>生命周期省略</strong> — 实现 <code>first_word</code> 函数（编译器自动推断）。</li>
+  <li><strong>'static 生命周期</strong> — 返回一个 <code>'static</code> 字符串。</li>
+  <li><strong>综合练习</strong> — 实现 <code>Excerpt::get_part</code> 方法。</li>
+</ol>
+
+</body>
+</html>

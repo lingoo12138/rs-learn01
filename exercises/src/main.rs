@@ -1,6 +1,9 @@
 mod chapter01_variables;
 mod chapter02_ownership;
 mod chapter03_borrow;
+mod chapter04_string;
+mod chapter05_struct_enum;
+mod chapter06_lifetime;
 
 fn main() {
     println!("╔══════════════════════════════════════╗");

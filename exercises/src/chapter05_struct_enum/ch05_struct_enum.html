@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第05章：结构体与枚举</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第05章：结构体与枚举</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>定义并实例化结构体（struct），包括普通结构体和元组结构体</li>
+  <li>使用 <code>impl</code> 为结构体实现方法，理解 <code>&amp;self</code> 和 <code>&amp;mut self</code></li>
+  <li>理解 <code>Option&lt;T&gt;</code> 和 <code>Result&lt;T, E&gt;</code> 枚举的用途</li>
+  <li>使用 <code>match</code> 和 <code>if let</code> 进行模式匹配</li>
+  <li>定义带数据的枚举变体（enum variants with data）</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>结构体和枚举是 Rust 中<strong>自定义数据类型</strong>的两种核心方式。如果你熟悉面向对象语言，Rust 的 <code>struct</code> 类似于类（但没有继承），而 <code>enum</code> 则比大多数语言中的枚举强大得多——每个变体可以携带不同类型和数量的数据。结合 <code>match</code> 的模式匹配，Rust 的枚举类型让你能够表达"这个值可能是 A、B 或 C，并且每种情况都携带不同数据"。
+</div>
+
+<h2>1. 结构体（Struct）</h2>
+
+<h3>1.1 定义结构体</h3>
+<p>使用 <code>struct</code> 关键字定义结构体，为每个字段指定名称和类型：</p>
+<div class="code-block"><span class="keyword">struct</span> <span class="type">User</span> {
+    username: <span class="type">String</span>,
+    email: <span class="type">String</span>,
+    sign_in_count: <span class="type">u64</span>,
+    active: <span class="type">bool</span>,
+}</div>
+
+<h3>1.2 实例化结构体</h3>
+<p>为每个字段指定值来创建结构体实例。字段的顺序不需要与定义一致。</p>
+<div class="code-block"><span class="keyword">let</span> user = <span class="type">User</span> {
+    email: String::<span class="keyword">from</span>(<span class="string">"alice@example.com"</span>),
+    username: String::<span class="keyword">from</span>(<span class="string">"alice"</span>),
+    active: <span class="keyword">true</span>,
+    sign_in_count: <span class="string">1</span>,
+};</div>
+
+<h3>1.3 可变实例</h3>
+<p>整个结构体实例必须是可变的（Rust 不允许只修改特定字段）：</p>
+<div class="code-block"><span class="keyword">let mut</span> user = <span class="type">User</span> { <span class="comment">/* ... */</span> };
+user.email = String::<span class="keyword">from</span>(<span class="string">"new@example.com"</span>);</div>
+
+<h3>1.4 字段初始化简写</h3>
+<p>如果字段名和变量名相同，可以简写：</p>
+<div class="code-block"><span class="keyword">let</span> email = String::<span class="keyword">from</span>(<span class="string">"a@b.com"</span>);
+<span class="keyword">let</span> username = String::<span class="keyword">from</span>(<span class="string">"alice"</span>);
+<span class="keyword">let</span> user = <span class="type">User</span> { email, username, active: <span class="keyword">true</span>, sign_in_count: <span class="string">1</span> };</div>
+
+<h3>1.5 结构体更新语法</h3>
+<p>使用 <code>..</code> 从另一个实例复制未显式赋值的字段：</p>
+<div class="code-block"><span class="keyword">let</span> user2 = <span class="type">User</span> {
+    email: String::<span class="keyword">from</span>(<span class="string">"b@c.com"</span>),
+    ..user
+};</div>
+
+<h2>2. impl 方法</h2>
+<p>使用 <code>impl</code> 块为结构体定义方法（method）。方法的第一个参数通常是 <code>&amp;self</code>（不可变借用）、<code>&amp;mut self</code>（可变借用）或 <code>self</code>（获取所有权）。</p>
+
+<div class="code-block"><span class="keyword">struct</span> <span class="type">Rectangle</span> {
+    width: <span class="type">u32</span>,
+    height: <span class="type">u32</span>,
+}
+
+<span class="keyword">impl</span> <span class="type">Rectangle</span> {
+    <span class="comment">// 不可变借用——只读访问</span>
+    <span class="keyword">fn</span> area(&<span class="keyword">self</span>) -> <span class="type">u32</span> {
+        self.width * self.height
+    }
+
+    <span class="comment">// 可变借用——可以修改字段</span>
+    <span class="keyword">fn</span> set_width(&mut <span class="keyword">self</span>, w: <span class="type">u32</span>) {
+        self.width = w;
+    }
+}
+
+<span class="keyword">let mut</span> rect = <span class="type">Rectangle</span> { width: <span class="string">10</span>, height: <span class="string">20</span> };
+println!(<span class="string">"面积: {}"</span>, rect.area());  <span class="comment">// 200</span>
+rect.set_width(<span class="string">15</span>);
+println!(<span class="string">"新面积: {}"</span>, rect.area());  <span class="comment">// 300</span></div>
+
+<div class="note">
+  <strong>注意：</strong><code>&amp;self</code> 是 <code>self: &amp;Self</code> 的语法糖，<code>&amp;mut self</code> 是 <code>self: &amp;mut Self</code> 的语法糖。在方法调用时，Rust 会自动处理引用和解引用，你不需要像 C 那样手动取地址。此外，<code>impl</code> 块中可以定义<strong>关联函数</strong>（associated functions），即第一个参数不是 <code>self</code> 的函数，通常用作构造函数，例如 <code>String::from()</code>。
+</div>
+
+<h2>3. 元组结构体（Tuple Structs）</h2>
+<p>元组结构体有字段名，只有字段类型和顺序：</p>
+<div class="code-block"><span class="keyword">struct</span> <span class="type">Color</span>(<span class="type">i32</span>, <span class="type">i32</span>, <span class="type">i32</span>);
+<span class="keyword">struct</span> <span class="type">Point</span>(<span class="type">i32</span>, <span class="type">i32</span>, <span class="type">i32</span>);
+
+<span class="keyword">let</span> black = <span class="type">Color</span>(<span class="string">0</span>, <span class="string">0</span>, <span class="string">0</span>);
+<span class="keyword">let</span> origin = <span class="type">Point</span>(<span class="string">0</span>, <span class="string">0</span>, <span class="string">0</span>);
+
+println!(<span class="string">"R: {}, G: {}, B: {}"</span>, black.<span class="string">0</span>, black.<span class="string">1</span>, black.<span class="string">2</span>);</div>
+
+<p>元组结构体的作用类似于给元组取了一个有意义的名字。即使 <code>Color</code> 和 <code>Point</code> 的内部结构相同，它们也是<strong>不同的类型</strong>，不能混用。</p>
+
+<h2>4. 枚举（Enum）</h2>
+
+<h3>4.1 Option&lt;T&gt; 枚举</h3>
+<p><code>Option&lt;T&gt;</code> 是 Rust 标准库中最重要的枚举之一，用于表示"可能有值也可能没有值"的情况。它替代了其他语言中的 <code>null</code> / <code>nil</code> / <code>None</code>。</p>
+
+<div class="code-block"><span class="keyword">enum</span> <span class="type">Option</span>&lt;T&gt; {
+    <span class="type">Some</span>(T),
+    <span class="type">None</span>,
+}
+
+<span class="keyword">let</span> some_number = <span class="type">Some</span>(<span class="string">42</span>);   <span class="comment">// Option&lt;i32&gt;</span>
+<span class="keyword">let</span> some_string = <span class="type">Some</span>(<span class="string">"hello"</span>);  <span class="comment">// Option&lt;&amp;str&gt;</span>
+<span class="keyword">let</span> absent: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt; = <span class="type">None</span>;  <span class="comment">// 必须标注类型</span></div>
+
+<div class="code-block"><span class="comment">// 使用 match 处理 Option</span>
+<span class="keyword">fn</span> unwrap_or_zero(x: <span class="type">Option</span>&lt;<span class="type">i32</span>&gt;) -> <span class="type">i32</span> {
+    <span class="keyword">match</span> x {
+        <span class="type">Some</span>(v) => v,
+        <span class="type">None</span> => <span class="string">0</span>,
+    }
+}</div>
+
+<h3>4.2 Result&lt;T, E&gt; 枚举</h3>
+<p><code>Result&lt;T, E&gt;</code> 用于可能失败的操作，返回成功值 <code>Ok(T)</code> 或错误值 <code>Err(E)</code>。</p>
+
+<div class="code-block"><span class="keyword">enum</span> <span class="type">Result</span>&lt;T, E&gt; {
+    <span class="type">Ok</span>(T),
+    <span class="type">Err</span>(E),
+}
+
+<span class="keyword">fn</span> check_positive(n: <span class="type">i32</span>) -> <span class="type">Result</span>&lt;<span class="type">String</span>, <span class="type">String</span>&gt; {
+    <span class="keyword">if</span> n > <span class="string">0</span> {
+        <span class="type">Ok</span>(<span class="string">"positive"</span>.to_string())
+    } <span class="keyword">else</span> {
+        <span class="type">Err</span>(<span class="string">"not positive"</span>.to_string())
+    }
+}</div>
+
+<h3>4.3 带数据的枚举变体</h3>
+<p>Rust 的枚举变体（variants）可以携带不同类型的数据，这是和其他语言最大的区别：</p>
+
+<div class="code-block"><span class="keyword">enum</span> <span class="type">Message</span> {
+    <span class="type">Quit</span>,                           <span class="comment">// 没有数据</span>
+    <span class="type">Move</span> { x: <span class="type">i32</span>, y: <span class="type">i32</span> },      <span class="comment">// 匿名结构体</span>
+    <span class="type">Write</span>(<span class="type">String</span>),                   <span class="comment">// 元组形式</span>
+    <span class="type">ChangeColor</span>(<span class="type">i32</span>, <span class="type">i32</span>, <span class="type">i32</span>), <span class="comment">// 多个值</span>
+}
+
+<span class="keyword">impl</span> <span class="type">Message</span> {
+    <span class="keyword">fn</span> call(&<span class="keyword">self</span>) {
+        <span class="comment">// 方法体</span>
+    }
+}
+
+<span class="keyword">let</span> m = <span class="type">Message</span>::<span class="type">Write</span>(String::<span class="keyword">from</span>(<span class="string">"hello"</span>));
+m.call();</div>
+
+<h2>5. match 与 if let</h2>
+
+<h3>5.1 match — 穷尽性模式匹配</h3>
+<p><code>match</code> 必须<strong>穷尽</strong>（exhaustive）所有可能的模式：</p>
+
+<div class="code-block"><span class="keyword">let</span> msg = <span class="type">Message</span>::<span class="type">Move</span> { x: <span class="string">10</span>, y: <span class="string">20</span> };
+
+<span class="keyword">match</span> msg {
+    <span class="type">Message</span>::<span class="type">Quit</span> => println!(<span class="string">"退出"</span>),
+    <span class="type">Message</span>::<span class="type">Move</span> { x, y } => println!(<span class="string">"移动到 ({}, {})"</span>, x, y),
+    <span class="type">Message</span>::<span class="type">Write</span>(text) => println!(<span class="string">"写入: {}"</span>, text),
+    <span class="type">Message</span>::<span class="type">ChangeColor</span>(r, g, b) => println!(<span class="string">"颜色: {} {} {}"</span>, r, g, b),
+}</div>
+
+<h3>5.2 if let — 简洁的单模式匹配</h3>
+<p>当只关心一种模式时，<code>if let</code> 比 <code>match</code> 更简洁：</p>
+
+<div class="code-block"><span class="keyword">let</span> config = <span class="type">Some</span>(<span class="string">3u8</span>);
+
+<span class="comment">// 使用 match（显得有些啰嗦）</span>
+<span class="keyword">match</span> config {
+    <span class="type">Some</span>(max) => println!(<span class="string">"最大值为 {}"</span>, max),
+    _ => (),  <span class="comment">// 必须处理所有情况</span>
+}
+
+<span class="comment">// 使用 if let（简洁）</span>
+<span class="keyword">if let</span> <span class="type">Some</span>(max) = config {
+    println!(<span class="string">"最大值为 {}"</span>, max);
+}</div>
+
+<div class="note">
+  <strong>穷尽性检查：</strong>Rust 的 <code>match</code> 必须覆盖所有可能性。如果你漏掉了一个变体，编译器会报错。这是一个强大的特性——想象一下，如果你给 <code>Message</code> 增加了一个新变体，编译器会告诉你所有使用 <code>match</code> 的地方，确保你不会遗漏新的处理逻辑。这被称为"<strong>穷尽性检查</strong>"（exhaustiveness checking）。
+</div>
+
+<h2>6. 综合示例</h2>
+
+<div class="code-block"><span class="keyword">struct</span> <span class="type">Rectangle</span> {
+    width: <span class="type">u32</span>,
+    height: <span class="type">u32</span>,
+}
+
+<span class="keyword">impl</span> <span class="type">Rectangle</span> {
+    <span class="comment">// 计算面积</span>
+    <span class="keyword">fn</span> area(&<span class="keyword">self</span>) -> <span class="type">u32</span> {
+        self.width * self.height
+    }
+
+    <span class="comment">// 判断是否能容纳另一个矩形</span>
+    <span class="keyword">fn</span> can_hold(&<span class="keyword">self</span>, other: &<span class="type">Rectangle</span>) -> <span class="type">bool</span> {
+        self.width >= other.width && self.height >= other.height
+    }
+}
+
+<span class="keyword">let</span> rect1 = <span class="type">Rectangle</span> { width: <span class="string">5</span>, height: <span class="string">5</span> };
+<span class="keyword">let</span> rect2 = <span class="type">Rectangle</span> { width: <span class="string">3</span>, height: <span class="string">3</span> };
+println!(<span class="string">"面积: {}"</span>, rect1.area());            <span class="comment">// 25</span>
+println!(<span class="string">"能容纳吗? {}"</span>, rect1.can_hold(&rect2));  <span class="comment">// true</span></div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter05_struct_enum/mod.rs</code> 文件，找到对应的函数填空，然后运行 <code>cargo test</code> 验证你的答案。</p>
+
+<ol>
+  <li><strong>创建结构体实例</strong> — 定义 <code>Person</code> 结构体并创建实例。</li>
+  <li><strong>实现方法</strong> — 为 <code>Person</code> 实现 <code>greet</code> 方法。</li>
+  <li><strong>元组结构体</strong> — 定义 <code>Color</code> 并创建 <code>black</code>。</li>
+  <li><strong>Option 匹配</strong> — 实现 <code>unwrap_or_zero</code>。</li>
+  <li><strong>Result 匹配</strong> — 实现 <code>check_positive</code>。</li>
+  <li><strong>if let</strong> — 使用 if let 简化 Option 处理。</li>
+  <li><strong>枚举变体</strong> — 实现 <code>process_message</code> 函数。</li>
+  <li><strong>match 穷尽性</strong> — 实现 <code>describe_number</code>。</li>
+  <li><strong>结构体参数</strong> — 实现 <code>person_age</code>。</li>
+  <li><strong>综合练习</strong> — 实现 <code>Rectangle</code> 的 <code>area</code> 和 <code>can_hold</code>。</li>
+</ol>
+
+</body>
+</html>

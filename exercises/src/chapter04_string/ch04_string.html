@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第04章：切片与字符串</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第04章：切片与字符串</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>区分 <code>String</code>（堆分配的可变字符串）和 <code>&amp;str</code>（字符串切片）</li>
+  <li>使用字符串切片安全地引用字符串的一部分</li>
+  <li>使用 <code>+</code> 运算符和 <code>format!</code> 宏拼接字符串</li>
+  <li>使用 <code>len()</code>、<code>chars()</code>、<code>contains()</code>、<code>replace()</code> 等常用方法</li>
+  <li>理解 UTF-8 编码和 Rust 中字符串的底层存储方式</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>如果你来自其他语言，注意 Rust 的字符串处理与其他语言有显著差异。在 C++ 中，<code>std::string</code> 可修改且以空字符结尾；在 Java/Python 中，字符串是不可变的，且底层是 UTF-16 或字节序列。Rust 的 <code>String</code> 是<strong>可变的、UTF-8 编码</strong>的堆分配字符串，而 <code>&amp;str</code> 是<strong>不可变的字符串切片视图</strong>。理解这两者的区别是 Rust 学习的关键一步。
+</div>
+
+<h2>1. String 与 &amp;str</h2>
+
+<h3>1.1 String — 堆分配的字符串</h3>
+<p><code>String</code> 是一个可增长、可修改、拥有所有权的 UTF-8 字符串类型。它在堆上分配内存，因此长度可以在运行时动态变化。</p>
+<div class="code-block"><span class="keyword">let mut</span> s = String::<span class="keyword">from</span>(<span class="string">"hello"</span>);
+s.push_str(<span class="string">" world"</span>);
+println!(<span class="string">"{}"</span>, s);  <span class="comment">// 输出: hello world</span></div>
+
+<h3>1.2 &amp;str — 字符串切片</h3>
+<p><code>&amp;str</code> 是一个对字符串数据的<strong>不可变引用</strong>（切片）。它不拥有数据，只提供对现有字符串数据的视图。字符串字面量就是 <code>&amp;str</code> 类型。</p>
+<div class="code-block"><span class="keyword">let</span> greeting: &<span class="type">str</span> = <span class="string">"hello"</span>;  <span class="comment">// 字符串字面量是 &str</span>
+<span class="keyword">let</span> s = String::<span class="keyword">from</span>(<span class="string">"hello"</span>);
+<span class="keyword">let</span> slice: &<span class="type">str</span> = &s[..];          <span class="comment">// 从 String 创建切片</span></div>
+
+<div class="note">
+  <strong>注意：</strong><code>String</code> 和 <code>&amp;str</code> 之间的关系可以理解为：<code>String</code> 是数据的<strong>所有者</strong>，<code>&amp;str</code> 是数据的<strong>借阅者</strong>。<code>&amp;str</code> 只保存一个指针和长度信息，不拥有底层数据。
+</div>
+
+<h2>2. 字符串切片（String Slices）</h2>
+<p>字符串切片是对字符串中<strong>一部分内容</strong>的引用。切片的范围使用 <code>[起始索引..结束索引]</code> 语法表示，结束索引<strong>不包含</strong>在切片内。</p>
+
+<div class="code-block"><span class="keyword">let</span> s = String::<span class="keyword">from</span>(<span class="string">"hello world"</span>);
+<span class="keyword">let</span> hello = &s[<span class="string">0</span>..<span class="string">5</span>];    <span class="comment">// "hello"</span>
+<span class="keyword">let</span> world = &s[<span class="string">6</span>..<span class="string">11</span>];   <span class="comment">// "world"</span>
+<span class="keyword">let</span> whole = &s[..];          <span class="comment">// "hello world" — 完整切片</span>
+<span class="keyword">let</span> from_start = &s[..<span class="string">5</span>];  <span class="comment">// "hello" — 从开头到索引 5</span>
+<span class="keyword">let</span> to_end = &s[<span class="string">6</span>..];       <span class="comment">// "world" — 从索引 6 到结尾</span></div>
+
+<p>切片索引必须落在<strong>有效的 UTF-8 字符边界</strong>上，否则程序会 panic：</p>
+<div class="code-block"><span class="keyword">let</span> s = <span class="string">"你好世界"</span>;
+<span class="comment">// &s[0..1] — 错误！"你"占用 3 个字节，索引 0..1 不是字符边界</span>
+<span class="keyword">let</span> hello = &s[<span class="string">0</span>..<span class="string">3</span>];  <span class="comment">// "你" — 正确，3 字节</span></div>
+
+<h2>3. 字符串拼接</h2>
+
+<h3>3.1 使用 + 运算符</h3>
+<p><code>+</code> 运算符调用 <code>add(self, s: &amp;str) -&gt; String</code> 方法，注意左侧必须是 <code>String</code> 类型（所有权被移动）。</p>
+<div class="code-block"><span class="keyword">let</span> s1 = String::<span class="keyword">from</span>(<span class="string">"Hello"</span>);
+<span class="keyword">let</span> s2 = String::<span class="keyword">from</span>(<span class="string">" World"</span>);
+<span class="keyword">let</span> s3 = s1 + &s2;  <span class="comment">// s1 的所有权被移动到 s3</span>
+<span class="comment">// println!("{}", s1); // 错误！s1 已失效</span>
+println!(<span class="string">"{}"</span>, s3);   <span class="comment">// 输出: Hello World</span></div>
+
+<h3>3.2 使用 format! 宏</h3>
+<p><code>format!</code> 宏更灵活，不会移动任何变量的所有权：</p>
+<div class="code-block"><span class="keyword">let</span> s1 = String::<span class="keyword">from</span>(<span class="string">"Hello"</span>);
+<span class="keyword">let</span> s2 = String::<span class="keyword">from</span>(<span class="string">"World"</span>);
+<span class="keyword">let</span> s = format!(<span class="string">"{} {}!"</span>, s1, s2);
+println!(<span class="string">"{}"</span>, s);   <span class="comment">// 输出: Hello World!</span>
+<span class="comment">// s1 和 s2 仍然有效！</span></div>
+
+<div class="tip">
+  <strong>推荐：</strong>在需要拼接多个字符串时，<code>format!</code> 是更好的选择。它的语法和 <code>println!</code> 相同，但不会把内容打印到屏幕，而是返回一个 <code>String</code>。使用 <code>+</code> 运算符时需要注意所有权的移动，使用多个 <code>+</code> 串联时会变得难以阅读。
+</div>
+
+<h2>4. 常用字符串方法</h2>
+
+<table>
+  <tr>
+    <th>方法</th>
+    <th>说明</th>
+    <th>示例</th>
+  </tr>
+  <tr>
+    <td><code>len()</code></td>
+    <td>返回字符串的<strong>字节数</strong>（不是字符数）</td>
+    <td><code>"hello".len()</code> = <code>5</code></td>
+  </tr>
+  <tr>
+    <td><code>chars()</code></td>
+    <td>返回字符迭代器</td>
+    <td><code>"你好".chars()</code> = 2 个 char</td>
+  </tr>
+  <tr>
+    <td><code>contains()</code></td>
+    <td>检查是否包含子串</td>
+    <td><code>"hello".contains("ll")</code> = <code>true</code></td>
+  </tr>
+  <tr>
+    <td><code>replace()</code></td>
+    <td>替换所有匹配的子串</td>
+    <td><code>"hello".replace("ll", "r")</code> = <code>"hero"</code></td>
+  </tr>
+  <tr>
+    <td><code>push_str()</code></td>
+    <td>追加字符串切片</td>
+    <td><code>s.push_str(" world")</code></td>
+  </tr>
+  <tr>
+    <td><code>is_empty()</code></td>
+    <td>检查字符串是否为空</td>
+    <td><code>"".is_empty()</code> = <code>true</code></td>
+  </tr>
+</table>
+
+<div class="code-block"><span class="keyword">let</span> s = <span class="string">"hello world"</span>;
+println!(<span class="string">"len: {}"</span>, s.len());              <span class="comment">// 11</span>
+println!(<span class="string">"contains 'world': {}"</span>, s.contains(<span class="string">"world"</span>));  <span class="comment">// true</span>
+println!(<span class="string">"replace: {}"</span>, s.replace(<span class="string">"hello"</span>, <span class="string">"hi"</span>));  <span class="comment">// "hi world"</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> s.<span class="keyword">chars</span>() {
+    print!(<span class="string">"{} "</span>, c);  <span class="comment">// h e l l o   w o r l d</span>
+}</div>
+
+<h2>5. UTF-8 与字符串内部表示</h2>
+<p>Rust 的 <code>String</code> 和 <code>&amp;str</code> 内部都是 <strong>UTF-8 编码的字节序列</strong>。这意味着：</p>
+<ul>
+  <li><code>len()</code> 返回的是<strong>字节数</strong>，不是字符数</li>
+  <li>一个"字符"（Unicode 标量值）可能占用 1 到 4 个字节</li>
+  <li>不能使用 <code>s[i]</code> 索引访问字符（Rust 的字符串不是字符数组）</li>
+  <li>遍历字符需要使用 <code>.chars()</code> 方法</li>
+</ul>
+
+<div class="code-block"><span class="keyword">let</span> s = <span class="string">"你好世界"</span>;
+println!(<span class="string">"字节长度: {}"</span>, s.len());          <span class="comment">// 12（每个汉字 3 字节）</span>
+println!(<span class="string">"字符个数: {}"</span>, s.chars().count()); <span class="comment">// 4</span>
+
+<span class="comment">// 不能这样做！</span>
+<span class="comment">// let c = s[0]; // 编译错误！</span>
+
+<span class="comment">// 正确的做法：</span>
+<span class="keyword">for</span> c <span class="keyword">in</span> s.<span class="keyword">chars</span>() {
+    println!(<span class="string">"{}"</span>, c);  <span class="comment">// 你 好 世 界</span>
+}</div>
+
+<div class="note">
+  <strong>重要：</strong>Rust 选择 UTF-8 作为字符串的内部编码，而不是像 Java 那样使用 UTF-16 或像 Python 3 内部使用灵活编码。这意味着处理 ASCII 文本时非常高效（每个字符 1 字节），但也意味着按索引随机访问字符是 O(n) 操作，而非 O(1)。这是 Rust 在设计上做出的权衡——<strong>内存效率优先于随机访问性能</strong>。对于需要随机访问字符的场景，Rust 提供了 <code>.chars()</code> 迭代器。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter04_string/mod.rs</code> 文件，找到对应的函数填空，然后运行 <code>cargo test</code> 验证你的答案。</p>
+
+<ol>
+  <li><strong>创建 String</strong> — 创建一个字符串 <code>"hello"</code> 并返回。</li>
+  <li><strong>字符串切片</strong> — 从 <code>"hello world"</code> 中切出 <code>"world"</code>。</li>
+  <li><strong>追加字符串</strong> — 使用 <code>push_str</code> 将 <code>" world"</code> 追加到 <code>"hello"</code> 后。</li>
+  <li><strong>使用 format!</strong> — 拼接 <code>"Hello, "</code> 和名字，返回完整问候语。</li>
+  <li><strong>字符串长度</strong> — 返回字符串的字节长度。</li>
+  <li><strong>包含检查</strong> — 判断字符串是否包含 <code>"rs"</code>。</li>
+  <li><strong>字符串替换</strong> — 将字符串中的 <code>"hello"</code> 替换为 <code>"hi"</code>。</li>
+  <li><strong>字符计数</strong> — 返回字符串中的字符（Unicode 标量值）个数。</li>
+</ol>
+
+</body>
+</html>
