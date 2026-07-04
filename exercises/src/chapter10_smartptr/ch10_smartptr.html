@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第10章：智能指针</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第10章：智能指针</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>理解 <code>Box&lt;T&gt;</code> 的堆分配和作用</li>
+  <li>使用 <code>Box</code> 创建递归类型</li>
+  <li>使用 <code>Rc&lt;T&gt;</code> 实现引用计数共享所有权</li>
+  <li>使用 <code>RefCell&lt;T&gt;</code> 实现内部可变性</li>
+  <li>组合 <code>Rc&lt;RefCell&lt;T&gt;&gt;</code> 实现共享可变数据</li>
+  <li>理解 Rust 智能指针的所有权和借用规则</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>智能指针是"行为像指针的数据结构"——它们不仅持有内存地址，还拥有额外的元数据和功能。如果你来自 C++ 背景，<code>Box</code> 类似 <code>std::unique_ptr</code>，<code>Rc</code> 类似 <code>std::shared_ptr</code>。但 Rust 智能指针的区别在于它们在<strong>编译时</strong>就保证了内存安全和线程安全。
+</div>
+
+<h2>1. Box&lt;T&gt; — 堆分配</h2>
+
+<h3>1.1 为什么需要 Box？</h3>
+<p>通常 Rust 变量在<strong>栈</strong>上分配内存。但有些数据需要在<strong>堆</strong>上分配：</p>
+<ul>
+  <li>数据大小在编译时未知</li>
+  <li>需要超出当前作用域存活的数据</li>
+  <li>递归类型（需要间接存储）</li>
+  <li>希望减少大型数据拷贝的开销</li>
+</ul>
+
+<div class="code-block"><span class="comment">// Box 将 i32 放到堆上，返回一个指向堆内存的指针</span>
+<span class="keyword">let</span> b = Box::<span class="keyword">new</span>(<span class="string">5</span>);
+println!(<span class="string">"{}"</span>, b);  <span class="comment">// 5 (自动解引用)</span>
+println!(<span class="string">"{}"</span>, *b);  <span class="comment">// 5 (显式解引用)</span>
+
+<span class="comment">// 离开作用域时，Box 会自动释放堆内存</span></div>
+
+<p><code>Box&lt;T&gt;</code> 实现了 <code>Deref</code> 和 <code>Drop</code> trait：</p>
+<ul>
+  <li><code>Deref</code> 允许 <code>Box&lt;T&gt;</code> 像 <code>&amp;T</code> 一样使用（自动解引用）</li>
+  <li><code>Drop</code> 确保离开作用域时释放堆内存</li>
+</ul>
+
+<h3>1.2 Box 和递归类型</h3>
+<p>Rust 需要在编译时知道每个类型的大小。递归类型如果用值存储，大小是无限的——必须用 <code>Box</code> 间接存储：</p>
+
+<div class="code-block"><span class="keyword">enum</span> List {
+    Cons(i32, Box&lt;List&gt;),  <span class="comment">// Box 是指针，大小固定</span>
+    Nil,
+}
+
+<span class="keyword">let</span> list = Cons(<span class="string">1</span>, Box::<span class="keyword">new</span>(Cons(<span class="string">2</span>, Box::<span class="keyword">new</span>(Nil))));</div>
+
+<div class="note">
+  <strong>为什么 Box 是必要的？</strong>没有 Box 时，<code>Cons(i32, List)</code> 会包含它自己，让编译器无法确定大小。而 <code>Box&lt;List&gt;</code> 是指针（在 64 位系统上是 8 字节），大小是确定的。
+</div>
+
+<h2>2. Rc&lt;T&gt; — 引用计数</h2>
+
+<h3>2.1 单所有权的问题</h3>
+<p>Rust 的每个值只有一个所有者。但有时一个值需要被<strong>多个地方共享</strong>——例如图数据结构中，一个节点可以有多个父节点。</p>
+
+<div class="code-block"><span class="keyword">use</span> std::rc::Rc;
+
+<span class="keyword">let</span> s = Rc::<span class="keyword">new</span>(String::<span class="keyword">from</span>(<span class="string">"hello"</span>));
+<span class="keyword">let</span> s2 = Rc::clone(&s);   <span class="comment">// 引用计数 +1，不是深拷贝</span>
+<span class="keyword">let</span> s3 = Rc::clone(&s);   <span class="comment">// 引用计数 +1，现在计数 = 3</span>
+
+println!(<span class="string">"count = {}"</span>, Rc::strong_count(&s));  <span class="comment">// 3</span></div>
+
+<p><code>Rc&lt;T&gt;</code> 的关键特性：</p>
+<ul>
+  <li><strong>只读共享</strong>——<code>Rc&lt;T&gt;</code> 只提供不可变借用</li>
+  <li><strong>引用计数</strong>——每次 <code>Rc::clone</code> 增加计数，离开作用域时减少</li>
+  <li><strong>非线程安全</strong>——只能在单线程中使用（没有 <code>Send</code> trait）</li>
+  <li><strong>低成本克隆</strong>——<code>Rc::clone</code> 只复制指针和增加计数，不深度复制数据</li>
+</ul>
+
+<div class="tip">
+  <strong>Rc::clone vs 深拷贝：</strong><code>Rc::clone(&s)</code> 和 <code>s.clone()</code> 在语法上一样，但行为完全不同！<code>Rc::clone</code> 只增加引用计数（O(1) 操作），而 <code>String::clone</code> 会复制整个字符串（O(n) 操作）。为清晰起见，建议始终使用 <code>Rc::clone(&s)</code> 而不是 <code>s.clone()</code>。
+</div>
+
+<h2>3. RefCell&lt;T&gt; — 内部可变性</h2>
+
+<h3>3.1 运行时借用检查</h3>
+<p>Rust 的借用规则（一个可变引用或多个不可变引用）是编译时强制执行的。但 <code>RefCell&lt;T&gt;</code> 将这些检查推迟到<strong>运行时</strong>——称为"内部可变性"模式。</p>
+
+<div class="code-block"><span class="keyword">use</span> std::cell::RefCell;
+
+<span class="keyword">let</span> cell = RefCell::<span class="keyword">new</span>(<span class="string">5</span>);
+*cell.borrow_mut() += <span class="string">1</span>;     <span class="comment">// 可变借用（运行时检查）</span>
+<span class="keyword">let</span> value = cell.borrow();    <span class="comment">// 不可变借用</span>
+println!(<span class="string">"{}"</span>, *value);        <span class="comment">// 6</span></div>
+
+<p>RefCell 的借用方法：</p>
+<table>
+  <tr><th>方法</th><th>返回类型</th><th>说明</th></tr>
+  <tr><td><code>borrow()</code></td><td><code>Ref&lt;T&gt;</code></td><td>不可变借用，多个可共存</td></tr>
+  <tr><td><code>borrow_mut()</code></td><td><code>RefMut&lt;T&gt;</code></td><td>可变借用，唯一独占</td></tr>
+</table>
+
+<div class="note">
+  <strong>运行时 panic：</strong>如果 <code>borrow</code> 时已有活跃的 <code>borrow_mut</code>（或反过来），程序会在运行时 <strong>panic</strong>。不会出现编译错误，但会有运行时错误。这与普通引用（编译时检查）的关键区别——RefCell 把内存安全保证从编译时移到了运行时。
+</div>
+
+<h3>3.2 何时使用 RefCell？</h3>
+<p><code>RefCell&lt;T&gt;</code> 适用于以下场景：</p>
+<ul>
+  <li>需要修改不可变引用背后的数据（内部可变性）</li>
+  <li>满足借用规则但编译器无法理解（复杂的所有权模式）</li>
+  <li>单线程环境——RefCell 不是 <code>Sync</code></li>
+</ul>
+
+<h2>4. Rc&lt;RefCell&lt;T&gt;&gt; — 共享可变性</h2>
+
+<p>组合 <code>Rc&lt;T&gt;</code>（共享所有权）和 <code>RefCell&lt;T&gt;</code>（内部可变性）能得到"共享可变数据"——多个所有者可以修改同一份数据。</p>
+
+<div class="code-block"><span class="keyword">use</span> std::rc::Rc;
+<span class="keyword">use</span> std::cell::RefCell;
+
+<span class="keyword">let</span> value = Rc::<span class="keyword">new</span>(RefCell::<span class="keyword">new</span>(<span class="string">10</span>));
+<span class="keyword">let</span> v2 = Rc::clone(&value);   <span class="comment">// 共享所有权</span>
+
+*value.borrow_mut() += <span class="string">5</span>;    <span class="comment">// 通过 RefCell 修改</span>
+println!(<span class="string">"{}"</span>, *value.borrow());  <span class="comment">// 15</span></div>
+
+<p><code>Rc&lt;RefCell&lt;T&gt;&gt;</code> 是多线程中 <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> 的单线程等价物。理解这个组合对理解后续的并发编程至关重要。</p>
+
+<h2>5. 智能指针总结</h2>
+
+<table>
+  <tr><th>智能指针</th><th>所有权</th><th>可变性</th><th>线程安全</th><th>检查时机</th></tr>
+  <tr><td><code>Box&lt;T&gt;</code></td><td>单一所有权</td><td>可变或不可变</td><td>是</td><td>编译时</td></tr>
+  <tr><td><code>Rc&lt;T&gt;</code></td><td>共享所有权</td><td>不可变</td><td>否</td><td>编译时</td></tr>
+  <tr><td><code>RefCell&lt;T&gt;</code></td><td>单一所有权</td><td>内部可变</td><td>否</td><td>运行时</td></tr>
+  <tr><td><code>Rc&lt;RefCell&lt;T&gt;&gt;</code></td><td>共享所有权</td><td>内部可变</td><td>否</td><td>运行时</td></tr>
+</table>
+
+<div class="tip">
+  <strong>多线程版本：</strong>在多线程场景下，用 <code>Arc&lt;T&gt;</code> 代替 <code>Rc&lt;T&gt;</code>（Arc = Atomic Reference Counting），用 <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> 代替 <code>Rc&lt;RefCell&lt;T&gt;&gt;</code>。这是下一章的内容。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter10_smartptr/mod.rs</code> 文件，查看并运行测试验证你的理解。</p>
+
+<ol>
+  <li><strong>Box 堆分配</strong> — 使用 Box 在堆上分配一个值</li>
+  <li><strong>Box 递归类型</strong> — 用 Box 创建链表枚举</li>
+  <li><strong>Rc 引用计数</strong> — 使用 Rc 共享字符串所有权</li>
+  <li><strong>Rc 强计数</strong> — 观察多次克隆后的引用计数</li>
+  <li><strong>RefCell 内部可变性</strong> — 通过 RefCell 修改不可变绑定</li>
+  <li><strong>Rc&lt;RefCell&lt;T&gt;&gt; 组合</strong> — 使用组合模式实现共享可变数据</li>
+</ol>
+
+</body>
+</html>

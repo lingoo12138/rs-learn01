@@ -2,3 +2,6 @@
 name = "exercises"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+futures-executor = "0.3"

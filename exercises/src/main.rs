@@ -7,6 +7,8 @@ mod chapter06_lifetime;
 mod chapter07_generics_trait;
 mod chapter08_error;
 mod chapter09_closure_iter;
+mod chapter10_smartptr;
+mod chapter11_concurrency;
 
 fn main() {
     println!("╔══════════════════════════════════════╗");

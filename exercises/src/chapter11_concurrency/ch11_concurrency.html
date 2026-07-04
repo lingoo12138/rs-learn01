@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第11章：并发与异步基础</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; line-height: 1.8; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 24px; background: #f8f9fa; }
+  h1 { font-size: 28px; color: #1a1a2e; border-bottom: 3px solid #de3f3f; padding-bottom: 12px; margin-bottom: 32px; }
+  h2 { font-size: 22px; color: #1a1a2e; margin: 32px 0 16px; border-left: 4px solid #de3f3f; padding-left: 12px; }
+  h3 { font-size: 18px; color: #444; margin: 24px 0 12px; }
+  p { margin: 12px 0; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #ddd; padding: 10px 14px; text-align: left; }
+  th { background: #f0f0f0; font-weight: 600; }
+  code { background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-family: "Fira Code", "Cascadia Code", monospace; font-size: 14px; }
+  .code-block code { background: transparent; padding: 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 6px 0; }
+  .keyword { color: #cba6f7; }
+  .type { color: #89b4fa; }
+  .comment { color: #6c7086; }
+  .string { color: #a6e3a1; }
+</style>
+</head>
+<body>
+
+<h1>第11章：并发与异步基础</h1>
+
+<h2>学习目标</h2>
+<p>完成本章后，你将能够：</p>
+<ul>
+  <li>使用 <code>thread::spawn</code> 创建系统线程</li>
+  <li>使用 <code>join</code> 等待线程完成</li>
+  <li>使用 <code>move</code> 闭包将数据移动到线程中</li>
+  <li>使用 <code>mpsc</code> 通道在线程间传递消息</li>
+  <li>使用 <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> 实现共享状态并发</li>
+  <li>理解 <code>Send</code> 和 <code>Sync</code> trait 的含义</li>
+  <li>编写简单的 <code>async</code> / <code>await</code> 异步函数</li>
+</ul>
+
+<div class="tip">
+  <strong>小提示：</strong>Rust 的并发模型是"无畏并发"（fearless concurrency）——编译器在编译时就能捕获数据竞争和其他并发 bug。如果你在 Go 中使用 goroutine 和 channel，Rust 的 <code>thread::spawn</code> + <code>mpsc</code> 会给你相似的感觉，但所有权系统提供了更强的安全性保证。
+</div>
+
+<h2>1. 线程（Threads）</h2>
+
+<h3>1.1 创建线程</h3>
+<p>使用 <code>thread::spawn</code> 创建一个新的操作系统线程：</p>
+
+<div class="code-block"><span class="keyword">use</span> std::thread;
+
+<span class="keyword">let</span> handle = thread::spawn(|| {
+    <span class="string">"hello from thread"</span>.to_string()
+});
+
+<span class="keyword">let</span> result = handle.join().unwrap();
+println!(<span class="string">"{}"</span>, result);  <span class="comment">// "hello from thread"</span></div>
+
+<p>关键点：</p>
+<ul>
+  <li><code>thread::spawn</code> 接受一个闭包作为参数</li>
+  <li>返回 <code>JoinHandle&lt;T&gt;</code>，可以用来等待线程完成</li>
+  <li><code>handle.join()</code> 会阻塞当前线程直到子线程完成</li>
+  <li><code>join()</code> 返回 <code>Result&lt;T&gt;</code>，如果线程 panic 则返回 <code>Err</code></li>
+</ul>
+
+<h3>1.2 move 闭包</h3>
+<p>线程中的闭包需要获得变量的<strong>所有权</strong>。使用 <code>move</code> 关键字强制将捕获的变量移动到闭包中：</p>
+
+<div class="code-block"><span class="keyword">let</span> x = <span class="string">5</span>;
+<span class="keyword">let</span> handle = thread::spawn(move || {
+    x * <span class="string">2</span>  <span class="comment">// x 的所有权被移动到线程中</span>
+});
+<span class="keyword">let</span> result = handle.join().unwrap();
+println!(<span class="string">"{}"</span>, result);  <span class="comment">// 10</span>
+<span class="comment">// println!("{}", x); // 编译错误！x 的所有权已被移动</span></div>
+
+<div class="note">
+  <strong>为什么需要 move？</strong>没有 <code>move</code> 时，闭包只会借用变量。但 Rust 无法保证线程中的借用生命周期——主线程可能先释放了变量！<code>move</code> 将变量所有权转移到闭包中，完全避免了生命周期问题。
+</div>
+
+<h2>2. 消息传递 — mpsc</h2>
+
+<h3>2.1 单生产者单消费者</h3>
+<p>Rust 的标准库提供了 <strong>mpsc</strong>（Multiple Producer, Single Consumer——多生产者，单消费者）通道：</p>
+
+<div class="code-block"><span class="keyword">use</span> std::sync::mpsc;
+<span class="keyword">use</span> std::thread;
+
+<span class="keyword">let</span> (tx, rx) = mpsc::channel();
+thread::spawn(move || {
+    tx.send(<span class="string">"hello"</span>.to_string()).unwrap();
+});
+
+<span class="keyword">let</span> msg = rx.recv().unwrap();
+println!(<span class="string">"{}"</span>, msg);  <span class="comment">// "hello"</span></div>
+
+<p>通道的传输端 (<code>tx</code>) 和生产端 (<code>rx</code>)：</p>
+<ul>
+  <li><code>tx.send(value)</code> — 发送消息，如果接收端已丢弃则返回 <code>Err</code></li>
+  <li><code>rx.recv()</code> — 阻塞接收，直到收到消息或所有发送端关闭</li>
+  <li><code>rx.try_recv()</code> — 非阻塞接收，没有消息时立即返回 <code>Err</code></li>
+  <li><code>rx.recv_timeout(dur)</code> — 带超时的接收</li>
+</ul>
+
+<h3>2.2 多生产者消息</h3>
+<p>通过 <code>tx.clone()</code> 可以创建多个发送端：</p>
+
+<div class="code-block"><span class="keyword">let</span> (tx, rx) = mpsc::channel();
+<span class="keyword">let</span> tx2 = tx.clone();
+
+thread::spawn(move || { tx.send(<span class="string">"A"</span>.to_string()).unwrap(); });
+thread::spawn(move || { tx2.send(<span class="string">"B"</span>.to_string()).unwrap(); });
+
+<span class="keyword">for</span> _ <span class="keyword">in</span> <span class="string">0</span>..<span class="string">2</span> {
+    println!(<span class="string">"Got: {}"</span>, rx.recv().unwrap());
+}</div>
+
+<div class="tip">
+  <strong>Channel vs 共享内存：</strong>Go 有"通过通信来共享内存，而不是通过共享内存来通信"的理念。Rust 两种方式都支持，但 mpsc 通道通常更安全——消息的所有权被转移到通道中，避免了数据竞争。这也是 Rust 中"无畏并发"的体现之一。
+</div>
+
+<h2>3. Arc&lt;Mutex&lt;T&gt;&gt; — 共享状态</h2>
+
+<h3>3.1 Mutex：互斥锁</h3>
+<p><code>Mutex&lt;T&gt;</code>（互斥锁）保证<strong>同时只有一个线程</strong>能访问数据：</p>
+
+<div class="code-block"><span class="keyword">use</span> std::sync::Mutex;
+
+<span class="keyword">let</span> m = Mutex::<span class="keyword">new</span>(<span class="string">0</span>);
+{
+    <span class="keyword">let mut</span> num = m.lock().unwrap();  <span class="comment">// 获取锁，阻塞直到锁可用</span>
+    *num += <span class="string">1</span>;                        <span class="comment">// 修改数据</span>
+}  <span class="comment">// 锁在此处自动释放</span>
+
+println!(<span class="string">"{}"</span>, *m.lock().unwrap());  <span class="comment">// 1</span></div>
+
+<h3>3.2 Arc：原子引用计数</h3>
+<p><code>Mutex</code> 需要被多个线程共享。<code>Rc</code> 不是线程安全的，需要用 <code>Arc</code>（Atomic Reference Counting）：</p>
+
+<div class="code-block"><span class="keyword">use</span> std::sync::{Arc, Mutex};
+<span class="keyword">use</span> std::thread;
+
+<span class="keyword">let</span> counter = Arc::<span class="keyword">new</span>(Mutex::<span class="keyword">new</span>(<span class="string">0</span>));
+<span class="keyword">let mut</span> handles = vec![];
+
+<span class="keyword">for</span> _ <span class="keyword">in</span> <span class="string">0</span>..<span class="string">5</span> {
+    <span class="keyword">let</span> c = Arc::clone(&counter);
+    handles.push(thread::spawn(move || {
+        <span class="keyword">let mut</span> num = c.lock().unwrap();
+        *num += <span class="string">1</span>;
+    }));
+}
+
+<span class="keyword">for</span> h <span class="keyword">in</span> handles { h.join().unwrap(); }
+
+println!(<span class="string">"Result: {}"</span>, *counter.lock().unwrap());  <span class="comment">// 5</span></div>
+
+<h3>3.3 Send 和 Sync</h3>
+<p>Rust 通过两个特殊 trait 保证并发安全：</p>
+<table>
+  <tr><th>Trait</th><th>含义</th><th>示例</th></tr>
+  <tr><td><code>Send</code></td><td>所有权可以在线程间转移</td><td><code>Arc&lt;T&gt;</code>, <code>Box&lt;T&gt;</code>, <code>String</code></td></tr>
+  <tr><td><code>Sync</code></td><td>可以被多个线程同时共享引用</td><td><code>Arc&lt;T&gt;</code>, <code>Mutex&lt;T&gt;</code></td></tr>
+</table>
+
+<div class="note">
+  <strong>不是 Send 不是 Sync：</strong><code>Rc&lt;T&gt;</code> 既不是 <code>Send</code> 也不是 <code>Sync</code>——它的引用计数不是原子操作。<code>RefCell&lt;T&gt;</code> 也不是 <code>Sync</code>——它的借用检查不是线程安全的。这些 trait 是<strong>自动推导</strong>的：如果一个类型的所有字段都是 <code>Send</code>/<code>Sync</code>，它自身也是。如果你不小心在多线程中使用 <code>Rc</code>，编译器会直接报错——这就是"无畏并发"的保证。
+</div>
+
+<h2>4. async/await 基础</h2>
+
+<h3>4.1 异步函数</h3>
+<p>异步函数用 <code>async fn</code> 声明，返回一个 <code>Future</code>。Future 是"将来某个时刻会产生一个值的计算"：</p>
+
+<div class="code-block"><span class="keyword">async fn</span> hello_async() -> String {
+    <span class="string">"hello async"</span>.to_string()
+}
+
+<span class="comment">// 异步函数需要执行器 (executor) 来运行</span>
+<span class="keyword">let</span> result = futures_executor::block_on(hello_async());
+println!(<span class="string">"{}"</span>, result);  <span class="comment">// "hello async"</span></div>
+
+<h3>4.2 async 块</h3>
+<p>也可以使用 <code>async</code> 块创建 Future：</p>
+
+<div class="code-block"><span class="keyword">let</span> future = <span class="keyword">async</span> {
+    <span class="string">"hello from async block"</span>.to_string()
+};
+
+<span class="keyword">let</span> result = futures_executor::block_on(future);
+println!(<span class="string">"{}"</span>, result);</div>
+
+<div class="tip">
+  <strong>async 和线程的区别：</strong>线程由操作系统调度，开销较大（每个线程有自己的栈）。异步任务由<strong>运行时</strong>（如 tokio、async-std）调度，在单个线程上可以运行<strong>成千上万个</strong>任务。异步适合 I/O 密集型任务（网络请求、文件读写），线程适合 CPU 密集型任务。
+</div>
+
+<h2>练习题</h2>
+<p>打开 <code>exercises/src/chapter11_concurrency/mod.rs</code> 文件，查看并运行测试验证你的理解。</p>
+
+<ol>
+  <li><strong>创建线程</strong> — 使用 <code>thread::spawn</code> 创建线程并获取返回值</li>
+  <li><strong>move 闭包</strong> — 使用 <code>move</code> 将数据移动到线程中</li>
+  <li><strong>mpsc 消息传递</strong> — 通过通道在线程间传递消息</li>
+  <li><strong>多生产者</strong> — 克隆发送端实现多生产者消息</li>
+  <li><strong>Arc&lt;Mutex&lt;T&gt;&gt;</strong> — 使用互斥锁实现共享计数器</li>
+  <li><strong>async/await</strong> — 编写异步函数并用执行器运行</li>
+</ol>
+
+</body>
+</html>
