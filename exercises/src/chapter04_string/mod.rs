@@ -1,6 +1,8 @@
 // 第04章：切片与字符串
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：创建 String 和 &str
 pub fn exercise1() -> String {
     let s = String::from("hello");

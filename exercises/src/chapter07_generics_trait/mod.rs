@@ -1,6 +1,8 @@
 // 第07章：泛型与 trait
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：泛型函数
 pub fn identity<T>(x: T) -> T {
     x

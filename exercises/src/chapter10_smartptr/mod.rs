@@ -1,5 +1,6 @@
 // 第10章：智能指针
 #![allow(dead_code)]
+pub mod practice;
 
 /// 练习1：Box 堆分配
 pub fn box_value(x: i32) -> Box<i32> { Box::new(x) }

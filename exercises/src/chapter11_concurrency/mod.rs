@@ -1,5 +1,6 @@
 // 第11章：并发与异步基础
 #![allow(dead_code)]
+pub mod practice;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;

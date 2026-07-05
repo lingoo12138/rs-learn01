@@ -1,6 +1,8 @@
 // 第06章：生命周期
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：标注函数生命周期参数——返回两个引用中较短的那个
 pub fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
     if x.len() > y.len() { x } else { y }

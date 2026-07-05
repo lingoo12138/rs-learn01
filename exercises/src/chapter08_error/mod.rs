@@ -1,6 +1,8 @@
 // 第08章：错误处理
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：panic 使用场景
 pub fn will_panic(n: i32) -> i32 {
     if n < 0 {

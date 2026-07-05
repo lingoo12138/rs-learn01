@@ -1,6 +1,8 @@
 // 第09章：闭包与迭代器
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：闭包基础语法
 pub fn make_adder(x: i32) -> impl Fn(i32) -> i32 {
     move |y| x + y

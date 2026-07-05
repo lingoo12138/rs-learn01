@@ -1,6 +1,8 @@
 // 第05章：结构体与枚举
 #![allow(dead_code)]
 
+pub mod practice;
+
 /// 练习1：定义并实例化一个结构体
 pub struct Person {
     name: String,
